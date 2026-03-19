@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DAP - Progressive Disclosure UI</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-8 font-sans flex justify-center items-center min-h-screen">
+    <div id="root" class="w-full max-w-2xl"></div>
+
+    <script type="text/babel">
+        const { useState } = React;
+
+        function DAPWizard() {
+            const [step, setStep] = useState(1);
+            
+            // State for the single component being built
+            const [data, setData] = useState({
+                component: '',
+                tooling: '',
+                weight: 50,
+                evidence: ''
+            });
+
+            // The HCI Magic: Dynamic Options based on previous choices
+            const getAvailableEvidence = () => {
+                let options = [
+                    { id: 'E1', label: 'E1 (Weak): Final Code Only', disabled: false, reason: '' },
+                    { id: 'E2', label: 'E2 (Moderate): Git Logs / Unit Tests', disabled: false, reason: '' },
+                    { id: 'E3', label: 'E3 (Strong): Design Rationale Essay', disabled: false, reason: '' },
+                    { id: 'E4', label: 'E4 (Live): 10-Min Oral Viva', disabled: false, reason: '' }
+                ];
+
+                // LOGIC GEAR 1: The Free-Rider Prevention
+                if (data.weight >= 25 && data.tooling !== 'Student Only') {
+                    options[0].disabled = true;
+                    options[0].reason = "🔒 Disabled: High-weight tasks using AI require at least E2 evidence to prevent free-riding.";
+                }
+
+                // LOGIC GEAR 2: The Surveillance Trap Prevention
+                if (data.weight <= 10) {
+                    options[2].disabled = true;
+                    options[2].reason = "🔒 Disabled: Demanding E3 Strong evidence for <10% weight creates excessive cognitive friction.";
+                    options[3].disabled = true;
+                    options[3].reason = "🔒 Disabled: Live Vivas for low-weight tasks are disproportionate.";
+                }
+
+                return options;
+            };
+
+            const nextStep = () => setStep(step + 1);
+            const prevStep = () => setStep(step - 1);
+
+            return (
+                <div className="bg-white p-8 rounded-xl shadow-2xl">
+                    {/* Header */}
+                    <div className="mb-8 border-b pb-4">
+                        <h1 className="text-2xl font-bold text-gray-800">DAP Component Builder</h1>
+                        <p className="text-gray-500 text-sm mt-1">Interface B: Progressive Disclosure (Node-Tree Flow)</p>
+                        
+                        {/* Progress Bar */}
+                        <div className="flex mt-4 space-x-2">
+                            {[1, 2, 3, 4, 5].map(i => (
+                                <div key={i} className={`h-2 flex-1 rounded ${step >= i ? 'bg-blue-600' : 'bg-gray-200'}`}></div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Step 1: Component */}
+                    {step === 1 && (
+                        <div className="animate-fade-in">
+                            <h2 className="text-xl font-bold mb-4">Step 1: What are you grading?</h2>
+                            <input type="text" placeholder="e.g., Core Logic, System Architecture..." 
+                                className="w-full p-4 border-2 border-gray-300 rounded-lg text-lg focus:border-blue-500 outline-none"
+                                value={data.component} onChange={e => setData({...data, component: e.target.value})} />
+                            <button onClick={nextStep} disabled={!data.component} 
+                                className="mt-6 w-full bg-blue-600 text-white font-bold py-3 rounded-lg disabled:opacity-50 hover:bg-blue-700">Next Step ➔</button>
+                        </div>
+                    )}
+
+                    {/* Step 2: Tooling */}
+                    {step === 2 && (
+                        <div className="animate-fade-in">
+                            <h2 className="text-xl font-bold mb-4">Step 2: What is your AI Policy for "{data.component}"?</h2>
+                            <div className="space-y-3">
+                                {['Student Only', 'Hybrid / Co-Pilot', 'AI Allowed (Full)'].map(opt => (
+                                    <button key={opt} onClick={() => { setData({...data, tooling: opt}); nextStep(); }}
+                                        className={`w-full p-4 border-2 rounded-lg text-left text-lg font-medium transition-all ${data.tooling === opt ? 'border-blue-600 bg-blue-50' : 'border-gray-200 hover:border-blue-400'}`}>
+                                        {opt}
+                                    </button>
+                                ))}
+                            </div>
+                            <button onClick={prevStep} className="mt-4 text-gray-500 font-medium hover:text-gray-800">⬅ Back</button>
+                        </div>
+                    )}
+
+                    {/* Step 3: Weight */}
+                    {step === 3 && (
+                        <div className="animate-fade-in">
+                            <h2 className="text-xl font-bold mb-4">Step 3: Grading Weight</h2>
+                            <p className="text-gray-600 mb-4">How much of the final grade is this worth?</p>
+                            <div className="flex items-center space-x-4">
+                                <input type="range" min="5" max="100" step="5" value={data.weight} 
+                                    onChange={e => setData({...data, weight: Number(e.target.value)})} 
+                                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" />
+                                <span className="text-3xl font-bold text-blue-600 w-20 text-right">{data.weight}%</span>
+                            </div>
+                            <div className="flex space-x-4 mt-8">
+                                <button onClick={prevStep} className="px-6 py-3 bg-gray-200 text-gray-700 font-bold rounded-lg hover:bg-gray-300">⬅ Back</button>
+                                <button onClick={nextStep} className="flex-1 bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700">Next Step ➔</button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Step 4: Evidence (THE HCI MAGIC HAPPENS HERE) */}
+                    {step === 4 && (
+                        <div className="animate-fade-in">
+                            <h2 className="text-xl font-bold mb-2">Step 4: Evidence Required</h2>
+                            <p className="text-sm text-gray-500 mb-4">
+                                Based on your choices (<span className="font-bold text-blue-600">{data.tooling}</span> + <span className="font-bold text-blue-600">{data.weight}% Weight</span>), the system has filtered your options:
+                            </p>
+                            
+                            <div className="space-y-3">
+                                {getAvailableEvidence().map(opt => (
+                                    <div key={opt.id}>
+                                        <button 
+                                            onClick={() => { setData({...data, evidence: opt.id}); nextStep(); }}
+                                            disabled={opt.disabled}
+                                            className={`w-full p-4 border-2 rounded-lg text-left text-lg font-medium transition-all ${opt.disabled ? 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed' : 'border-gray-200 hover:border-blue-400 text-gray-800 bg-white'}`}>
+                                            {opt.label}
+                                        </button>
+                                        {opt.disabled && <p className="text-xs text-red-500 mt-1 ml-2">{opt.reason}</p>}
+                                    </div>
+                                ))}
+                            </div>
+                            <button onClick={prevStep} className="mt-4 text-gray-500 font-medium hover:text-gray-800">⬅ Back</button>
+                        </div>
+                    )}
+
+                    {/* Step 5: Success */}
+                    {step === 5 && (
+                        <div className="animate-fade-in text-center py-8">
+                            <div className="text-green-500 text-6xl mb-4">✓</div>
+                            <h2 className="text-2xl font-bold text-gray-800 mb-2">Component Validated</h2>
+                            <p className="text-gray-600 mb-6">This grading rule mathematically aligns with academic integrity and usability standards.</p>
+                            
+                            <div className="bg-gray-50 p-4 rounded-lg text-left border border-gray-200 mb-6">
+                                <p><strong>Component:</strong> {data.component}</p>
+                                <p><strong>Tooling:</strong> {data.tooling}</p>
+                                <p><strong>Weight:</strong> {data.weight}%</p>
+                                <p><strong>Evidence:</strong> {data.evidence}</p>
+                            </div>
+                            
+                            <button onClick={() => setStep(1)} className="text-blue-600 font-bold hover:underline">Build Another Component</button>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<DAPWizard />);
+    </script>
+    <style>
+        .animate-fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</body>
+</html>
