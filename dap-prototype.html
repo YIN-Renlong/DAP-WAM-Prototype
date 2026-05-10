@@ -32,11 +32,11 @@
                 name: "Tier 1: Foundational",
                 desc: "AI prohibited. Emphasis on manual production and basic understanding.",
                 data: [
-                    { id: 1, component: 'System Architecture', tooling: 'Student Only', granularity: 'Diagram-Level', evidence: 'E2 (Moderate)', weight: 10 },
-                    { id: 2, component: 'Core Logic', tooling: 'Student Only', granularity: 'Function-Level', evidence: 'E2 (Moderate)', weight: 35 },
-                    { id: 3, component: 'Syntax/Boilerplate', tooling: 'Student Only', granularity: 'Line-Level', evidence: 'E1 (Weak)', weight: 35 },
-                    { id: 4, component: 'Documentation', tooling: 'Student Only', granularity: 'File-Level', evidence: 'E1 (Weak)', weight: 10 },
-                    { id: 5, component: 'Debugging', tooling: 'Student Only', granularity: 'Function-Level', evidence: 'E2 (Moderate)', weight: 10 }
+                    { id: 1, component: 'System Architecture', tooling: 'Student Only', granularity: 'Diagram-Level', evidence: 'E2: Process evidence', weight: 10 },
+                    { id: 2, component: 'Core Logic', tooling: 'Student Only', granularity: 'Function-Level', evidence: 'E2: Process evidence', weight: 35 },
+                    { id: 3, component: 'Syntax/Boilerplate', tooling: 'Student Only', granularity: 'Line-Level', evidence: 'E1: Final output only', weight: 35 },
+                    { id: 4, component: 'Documentation', tooling: 'Student Only', granularity: 'File-Level', evidence: 'E1: Final output only', weight: 10 },
+                    { id: 5, component: 'Debugging', tooling: 'Student Only', granularity: 'Function-Level', evidence: 'E2: Process evidence', weight: 10 }
                 ]
             },
 
@@ -44,11 +44,11 @@
                 name: "Tier 2: Hybrid",
                 desc: "AI as assistant. Some AI support is allowed with moderate evidence.",
                 data: [
-                    { id: 1, component: 'System Architecture', tooling: 'Student Only', granularity: 'Diagram-Level', evidence: 'E2 (Moderate)', weight: 20 },
-                    { id: 2, component: 'Core Logic', tooling: 'Student Only', granularity: 'Function-Level', evidence: 'E2 (Moderate)', weight: 30 },
-                    { id: 3, component: 'Syntax/Boilerplate', tooling: 'Hybrid / Co-Pilot', granularity: 'File-Level', evidence: 'E1 (Weak)', weight: 15 },
+                    { id: 1, component: 'System Architecture', tooling: 'Student Only', granularity: 'Diagram-Level', evidence: 'E2: Process evidence', weight: 20 },
+                    { id: 2, component: 'Core Logic', tooling: 'Student Only', granularity: 'Function-Level', evidence: 'E2: Process evidence', weight: 30 },
+                    { id: 3, component: 'Syntax/Boilerplate', tooling: 'Hybrid / Co-Pilot', granularity: 'File-Level', evidence: 'E1: Final output only', weight: 15 },
                     { id: 4, component: 'Documentation', tooling: 'AI Allowed', granularity: 'Assignment-Level', evidence: 'Provenance Label (Y/N)', weight: 10 },
-                    { id: 5, component: 'Debugging', tooling: 'Hybrid / Co-Pilot', granularity: 'Function-Level', evidence: 'E2 (Moderate)', weight: 25 }
+                    { id: 5, component: 'Debugging', tooling: 'Hybrid / Co-Pilot', granularity: 'Function-Level', evidence: 'E2: Process evidence', weight: 25 }
                 ]
             },
 
@@ -56,11 +56,11 @@
                 name: "Tier 3: Architectural",
                 desc: "AI as implementer. Emphasis shifts toward verification and design reasoning.",
                 data: [
-                    { id: 1, component: 'System Architecture', tooling: 'Student Only', granularity: 'Diagram-Level', evidence: 'E3 (Strong)', weight: 40 },
-                    { id: 2, component: 'Core Logic', tooling: 'Hybrid / Co-Pilot', granularity: 'Function-Level', evidence: 'E2 (Moderate)', weight: 30 },
-                    { id: 3, component: 'Syntax/Boilerplate', tooling: 'AI Allowed', granularity: 'File-Level', evidence: 'E1 (Weak)', weight: 10 },
+                    { id: 1, component: 'System Architecture', tooling: 'Student Only', granularity: 'Diagram-Level', evidence: 'E3: Explanation evidence', weight: 40 },
+                    { id: 2, component: 'Core Logic', tooling: 'Hybrid / Co-Pilot', granularity: 'Function-Level', evidence: 'E2: Process evidence', weight: 30 },
+                    { id: 3, component: 'Syntax/Boilerplate', tooling: 'AI Allowed', granularity: 'File-Level', evidence: 'E1: Final output only', weight: 10 },
                     { id: 4, component: 'Documentation', tooling: 'AI Allowed', granularity: 'Assignment-Level', evidence: 'Provenance Label (Y/N)', weight: 5 },
-                    { id: 5, component: 'Debugging', tooling: 'Hybrid / Co-Pilot', granularity: 'Function-Level', evidence: 'E2 (Moderate)', weight: 15 }
+                    { id: 5, component: 'Debugging', tooling: 'Hybrid / Co-Pilot', granularity: 'Function-Level', evidence: 'E2: Process evidence', weight: 15 }
                 ]
             },
 
@@ -68,11 +68,11 @@
                 name: "Tier 4: Frontier",
                 desc: "AI is expected. Assessment focuses on added value, verification, and judgment.",
                 data: [
-                    { id: 1, component: 'System Architecture', tooling: 'Student Only', granularity: 'Diagram-Level', evidence: 'E4 (Live Contextual)', weight: 30 },
-                    { id: 2, component: 'Core Logic', tooling: 'Hybrid / Co-Pilot', granularity: 'Function-Level', evidence: 'E3 (Strong)', weight: 30 },
-                    { id: 3, component: 'Syntax/Boilerplate', tooling: 'AI Allowed', granularity: 'File-Level', evidence: 'E1 (Weak)', weight: 5 },
+                    { id: 1, component: 'System Architecture', tooling: 'Student Only', granularity: 'Diagram-Level', evidence: 'E4: Live check', weight: 30 },
+                    { id: 2, component: 'Core Logic', tooling: 'Hybrid / Co-Pilot', granularity: 'Function-Level', evidence: 'E3: Explanation evidence', weight: 30 },
+                    { id: 3, component: 'Syntax/Boilerplate', tooling: 'AI Allowed', granularity: 'File-Level', evidence: 'E1: Final output only', weight: 5 },
                     { id: 4, component: 'Documentation', tooling: 'AI Allowed', granularity: 'Assignment-Level', evidence: 'Provenance Label (Y/N)', weight: 5 },
-                    { id: 5, component: 'Debugging', tooling: 'Hybrid / Co-Pilot', granularity: 'Function-Level', evidence: 'E3 (Strong)', weight: 30 }
+                    { id: 5, component: 'Debugging', tooling: 'Hybrid / Co-Pilot', granularity: 'Function-Level', evidence: 'E3: Explanation evidence', weight: 30 }
                 ]
             }
         };
@@ -84,11 +84,11 @@
                 name: "Anti-Pattern 1: Free-Rider",
                 desc: "High weight + AI allowed + weak evidence.",
                 data: [
-                    { id: 1, component: 'System Architecture', tooling: 'Student Only', granularity: 'Diagram-Level', evidence: 'E2 (Moderate)', weight: 20 },
-                    { id: 2, component: 'Core Logic', tooling: 'AI Allowed', granularity: 'Function-Level', evidence: 'E1 (Weak)', weight: 30 },
-                    { id: 3, component: 'Syntax/Boilerplate', tooling: 'AI Allowed', granularity: 'File-Level', evidence: 'E1 (Weak)', weight: 10 },
+                    { id: 1, component: 'System Architecture', tooling: 'Student Only', granularity: 'Diagram-Level', evidence: 'E2: Process evidence', weight: 20 },
+                    { id: 2, component: 'Core Logic', tooling: 'AI Allowed', granularity: 'Function-Level', evidence: 'E1: Final output only', weight: 30 },
+                    { id: 3, component: 'Syntax/Boilerplate', tooling: 'AI Allowed', granularity: 'File-Level', evidence: 'E1: Final output only', weight: 10 },
                     { id: 4, component: 'Documentation', tooling: 'AI Allowed', granularity: 'Assignment-Level', evidence: 'Provenance Label (Y/N)', weight: 10 },
-                    { id: 5, component: 'Debugging', tooling: 'Hybrid / Co-Pilot', granularity: 'Function-Level', evidence: 'E2 (Moderate)', weight: 30 }
+                    { id: 5, component: 'Debugging', tooling: 'Hybrid / Co-Pilot', granularity: 'Function-Level', evidence: 'E2: Process evidence', weight: 30 }
                 ]
             },
 
@@ -96,11 +96,11 @@
                 name: "Anti-Pattern 2: Surveillance Trap",
                 desc: "Low-weight task demanding excessive evidence.",
                 data: [
-                    { id: 1, component: 'System Architecture', tooling: 'Student Only', granularity: 'Diagram-Level', evidence: 'E2 (Moderate)', weight: 25 },
-                    { id: 2, component: 'Core Logic', tooling: 'Student Only', granularity: 'Function-Level', evidence: 'E2 (Moderate)', weight: 35 },
-                    { id: 3, component: 'Syntax/Boilerplate', tooling: 'Student Only', granularity: 'Line-Level', evidence: 'E1 (Weak)', weight: 15 },
-                    { id: 4, component: 'Documentation', tooling: 'Student Only', granularity: 'Assignment-Level', evidence: 'E4 (Live Contextual)', weight: 5 },
-                    { id: 5, component: 'Debugging', tooling: 'Student Only', granularity: 'Function-Level', evidence: 'E2 (Moderate)', weight: 20 }
+                    { id: 1, component: 'System Architecture', tooling: 'Student Only', granularity: 'Diagram-Level', evidence: 'E2: Process evidence', weight: 25 },
+                    { id: 2, component: 'Core Logic', tooling: 'Student Only', granularity: 'Function-Level', evidence: 'E2: Process evidence', weight: 35 },
+                    { id: 3, component: 'Syntax/Boilerplate', tooling: 'Student Only', granularity: 'Line-Level', evidence: 'E1: Final output only', weight: 15 },
+                    { id: 4, component: 'Documentation', tooling: 'Student Only', granularity: 'Assignment-Level', evidence: 'E4: Live check', weight: 5 },
+                    { id: 5, component: 'Debugging', tooling: 'Student Only', granularity: 'Function-Level', evidence: 'E2: Process evidence', weight: 20 }
                 ]
             },
 
@@ -108,11 +108,11 @@
                 name: "Anti-Pattern 3: Labor Misalignment",
                 desc: "Too much credit for syntax when AI is allowed.",
                 data: [
-                    { id: 1, component: 'System Architecture', tooling: 'Student Only', granularity: 'Diagram-Level', evidence: 'E3 (Strong)', weight: 25 },
-                    { id: 2, component: 'Core Logic', tooling: 'Hybrid / Co-Pilot', granularity: 'Function-Level', evidence: 'E2 (Moderate)', weight: 25 },
-                    { id: 3, component: 'Syntax/Boilerplate', tooling: 'AI Allowed', granularity: 'File-Level', evidence: 'E2 (Moderate)', weight: 25 },
+                    { id: 1, component: 'System Architecture', tooling: 'Student Only', granularity: 'Diagram-Level', evidence: 'E3: Explanation evidence', weight: 25 },
+                    { id: 2, component: 'Core Logic', tooling: 'Hybrid / Co-Pilot', granularity: 'Function-Level', evidence: 'E2: Process evidence', weight: 25 },
+                    { id: 3, component: 'Syntax/Boilerplate', tooling: 'AI Allowed', granularity: 'File-Level', evidence: 'E2: Process evidence', weight: 25 },
                     { id: 4, component: 'Documentation', tooling: 'AI Allowed', granularity: 'Assignment-Level', evidence: 'Provenance Label (Y/N)', weight: 5 },
-                    { id: 5, component: 'Debugging', tooling: 'Hybrid / Co-Pilot', granularity: 'Function-Level', evidence: 'E2 (Moderate)', weight: 20 }
+                    { id: 5, component: 'Debugging', tooling: 'Hybrid / Co-Pilot', granularity: 'Function-Level', evidence: 'E2: Process evidence', weight: 20 }
                 ]
             },
 
@@ -120,11 +120,11 @@
                 name: "Anti-Pattern 4: Granularity Mismatch",
                 desc: "Line-level disclosure for a macro-level architecture task.",
                 data: [
-                    { id: 1, component: 'System Architecture', tooling: 'Hybrid / Co-Pilot', granularity: 'Line-Level', evidence: 'E3 (Strong)', weight: 30 },
-                    { id: 2, component: 'Core Logic', tooling: 'Student Only', granularity: 'Function-Level', evidence: 'E2 (Moderate)', weight: 30 },
-                    { id: 3, component: 'Syntax/Boilerplate', tooling: 'AI Allowed', granularity: 'File-Level', evidence: 'E1 (Weak)', weight: 10 },
+                    { id: 1, component: 'System Architecture', tooling: 'Hybrid / Co-Pilot', granularity: 'Line-Level', evidence: 'E3: Explanation evidence', weight: 30 },
+                    { id: 2, component: 'Core Logic', tooling: 'Student Only', granularity: 'Function-Level', evidence: 'E2: Process evidence', weight: 30 },
+                    { id: 3, component: 'Syntax/Boilerplate', tooling: 'AI Allowed', granularity: 'File-Level', evidence: 'E1: Final output only', weight: 10 },
                     { id: 4, component: 'Documentation', tooling: 'AI Allowed', granularity: 'Assignment-Level', evidence: 'Provenance Label (Y/N)', weight: 5 },
-                    { id: 5, component: 'Debugging', tooling: 'Hybrid / Co-Pilot', granularity: 'Function-Level', evidence: 'E2 (Moderate)', weight: 25 }
+                    { id: 5, component: 'Debugging', tooling: 'Hybrid / Co-Pilot', granularity: 'Function-Level', evidence: 'E2: Process evidence', weight: 25 }
                 ]
             }
         };
@@ -135,7 +135,7 @@
             const [showStressTests, setShowStressTests] = useState(false);
 
             const toolingOptions = ['Student Only', 'Hybrid / Co-Pilot', 'AI Allowed'];
-            const evidenceOptions = ['E1 (Weak)', 'E2 (Moderate)', 'E3 (Strong)', 'E4 (Live Contextual)', 'Provenance Label (Y/N)'];
+            const evidenceOptions = ['E1: Final output only', 'E2: Process evidence', 'E3: Explanation evidence', 'E4: Live check', 'Provenance Label (Y/N)'];
             const granularityOptions = ['Assignment-Level', 'File-Level', 'Diagram-Level', 'Function-Level', 'Line-Level'];
 
             const updateRow = (id, field, value) => {
@@ -160,22 +160,22 @@
 
                 // Gear 1: Integrity
                 if (weight >= 25 && isAIPermitted && isWeakEvidence) {
-                    errors.push("Integrity Warning: high-weight tasks using AI should require at least E2 evidence, so that students provide more than a final output.");
+                    errors.push("Integrity Warning: This task is worth many points and AI is allowed, but the student only has to submit the final output. That is weak evidence, because AI could produce the output. Ask for process notes, tests, or an explanation.");
                 }
 
                 // Gear 2: Usability / proportionality
                 if (weight <= 10 && isStrongEvidence) {
-                    errors.push("Proportionality Warning: strong evidence for a low-weight task may create unnecessary workload. Consider E1 or E2.");
+                    errors.push("Proportionality Warning: This task is worth few points, but it asks for heavy evidence such as a long explanation or live check. That may create too much work for a small part of the grade.");
                 }
 
                 // Gear 3: Pedagogical alignment
                 if ((compLower.includes('syntax') || compLower.includes('boilerplate')) && weight > 20 && isAIPermitted) {
-                    errors.push("Pedagogy Warning: if syntax or boilerplate receives high weight, allowing AI may shift credit away from the student's own work.");
+                    errors.push("Pedagogy Warning: This gives many points for syntax or boilerplate while AI is allowed. The grade may reward AI-generated routine code more than the student's own understanding.");
                 }
 
                 // Gear 4: Disclosure granularity
                 if (compLower.includes('architecture') && row.granularity === 'Line-Level') {
-                    errors.push("Granularity Warning: line-level disclosure is too detailed for a system architecture task. Diagram-level or component-level evidence is more appropriate.");
+                    errors.push("Granularity Warning: System architecture is a big-picture task. Asking for line-by-line disclosure is too detailed. Use diagram-level or component-level evidence.");
                 }
 
                 return errors;
@@ -206,6 +206,9 @@
                             Core Logic, Syntax/Boilerplate, Documentation, and Debugging. The presets change the
                             AI policy, evidence level, disclosure granularity, and grading weight. A warning means
                             that the current configuration may be inconsistent, disproportionate, or difficult to justify.
+                            In this prototype, evidence means proof that the student understands the submitted work.
+                            Weak evidence is only the final output. Stronger evidence can include process notes, tests,
+                            explanations, or a short oral check.
                         </p>
                     </div>
 

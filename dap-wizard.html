@@ -66,25 +66,25 @@
                 let options = [
                     {
                         id: 'E1',
-                        label: 'E1 (Weak): Final Output Only',
+                        label: 'E1: Final output only: Final Output Only',
                         disabled: false,
                         reason: ''
                     },
                     {
                         id: 'E2',
-                        label: 'E2 (Moderate): Process Evidence / Tests',
+                        label: 'E2: Process evidence: Process Evidence / Tests',
                         disabled: false,
                         reason: ''
                     },
                     {
                         id: 'E3',
-                        label: 'E3 (Strong): Design Rationale / Explanation',
+                        label: 'E3: Explanation evidence: Design Rationale / Explanation',
                         disabled: false,
                         reason: ''
                     },
                     {
                         id: 'E4',
-                        label: 'E4 (Live): Short Oral Check / Viva',
+                        label: 'E4: Live check / short oral explanation',
                         disabled: false,
                         reason: ''
                     }
@@ -93,15 +93,15 @@
                 // Logic Gear 1: Free-rider prevention
                 if (data.weight >= 25 && data.tooling !== 'Student Only') {
                     options[0].disabled = true;
-                    options[0].reason = "Disabled: high-weight tasks using AI require at least E2 evidence, so the student provides more than a final output.";
+                    options[0].reason = "Disabled: this task is worth many points and AI is allowed. The final output alone is weak evidence because AI could produce it. Ask for process notes, tests, or an explanation.";
                 }
 
                 // Logic Gear 2: Proportionality / workload prevention
                 if (data.weight <= 10) {
                     options[2].disabled = true;
-                    options[2].reason = "Disabled: E3 evidence for a low-weight task may create unnecessary workload.";
+                    options[2].reason = "Disabled: this task is worth few points. A long explanation may create too much work for a small part of the grade.";
                     options[3].disabled = true;
-                    options[3].reason = "Disabled: a live check for a low-weight task may be disproportionate.";
+                    options[3].reason = "Disabled: this task is worth few points. A live oral check may create too much work for a small part of the grade.";
                 }
 
                 return options;
@@ -123,7 +123,7 @@
                         </p>
 
                         <p className="text-gray-600 text-sm mt-3 leading-relaxed">
-                            This wizard builds one assessment component step by step. It uses the same DAP/WAM logic as the matrix builder, but presents the choices in a simpler sequence.
+                            This wizard builds one assessment component step by step. It uses the same DAP/WAM logic as the matrix builder, but presents the choices in a simpler sequence. Here, evidence means proof that the student understands the submitted work, such as process notes, tests, explanations, or a short oral check.
                         </p>
 
                         {/* Progress Bar */}
