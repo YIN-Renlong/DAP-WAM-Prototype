@@ -12,332 +12,747 @@
 
     <!-- Load Tailwind CSS for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+        .wrap-text {
+            white-space: normal;
+            overflow-wrap: anywhere;
+            word-break: normal;
+        }
+
+        .matrix-table {
+            table-layout: fixed;
+            width: 100%;
+        }
+
+        .matrix-table th,
+        .matrix-table td {
+            vertical-align: top;
+        }
+
+        .compact-select,
+        .compact-input {
+            min-width: 0;
+        }
+    </style>
 </head>
 
-<body class="bg-gray-50 p-8 font-sans">
+<body class="bg-gray-50 p-4 md:p-6 font-sans">
     <div id="root"></div>
 
     <script type="text/babel">
         const { useState } = React;
 
+        const deepClone = (data) => JSON.parse(JSON.stringify(data));
+
         /*
-          For the usability study, all presets keep the same five components.
-          This makes the matrix easier to compare because only tooling,
-          evidence, granularity, and weight change across presets.
+          Selectable options are ordered by meaning.
+
+          Tooling:
+          - least AI agency to most AI agency
+
+          Evidence:
+          - weakest evidence to strongest evidence
+          - AI-use label is kept as a separate option
+          - It is placed before E1 so users do not mistake it as stronger than E4
+
+          Granularity:
+          - broadest disclosure level to finest disclosure level
         */
 
-        // --- VALID PRESETS (Tiers 1-4) ---
-        const presets = {
-            tier1: {
-                name: "Tier 1: Foundational",
-                desc: "AI prohibited. Emphasis on manual production and basic understanding.",
-                data: [
-                    { id: 1, component: 'System Architecture', tooling: 'Student Only', granularity: 'Diagram-Level', evidence: 'E2: Process evidence', weight: 10 },
-                    { id: 2, component: 'Core Logic', tooling: 'Student Only', granularity: 'Function-Level', evidence: 'E2: Process evidence', weight: 35 },
-                    { id: 3, component: 'Syntax/Boilerplate', tooling: 'Student Only', granularity: 'Line-Level', evidence: 'E1: Final output only', weight: 35 },
-                    { id: 4, component: 'Documentation', tooling: 'Student Only', granularity: 'File-Level', evidence: 'E1: Final output only', weight: 10 },
-                    { id: 5, component: 'Debugging', tooling: 'Student Only', granularity: 'Function-Level', evidence: 'E2: Process evidence', weight: 10 }
-                ]
+        const evidenceOptions = [
+            'AI-use label only (weak evidence)',
+            'E1: Final output only',
+            'E2: Process evidence',
+            'E3: Explanation evidence',
+            'E4: Live check'
+        ];
+
+        const toolingOptions = [
+            'Student Only',
+            'Hybrid / Co-Pilot',
+            'AI Allowed'
+        ];
+
+        const profiles = {
+            cs: {
+                label: 'Computer Science / Software Design',
+                shortLabel: 'Computer Science',
+                badge: 'Default CS Matrix',
+                desc: 'Assess software design, implementation, documentation, and debugging.',
+                componentModel: 'The components follow a software development workflow: architecture, logic, syntax, documentation, and debugging.',
+                granularityOptions: [
+                    'Assignment-Level',
+                    'Diagram-Level',
+                    'File-Level',
+                    'Function-Level',
+                    'Line-Level'
+                ],
+                evidenceExamples: {
+                    e1: 'Final code file, final report, or final execution output only.',
+                    e2: 'Git commits, debugging notes, test logs, implementation process notes.',
+                    e3: 'Architecture rationale, design explanation, annotated code decisions.',
+                    e4: 'Short oral defense of specific code, design choices, or debugging decisions.'
+                },
+                presets: {
+                    tier1: {
+                        name: 'Tier 1: Foundational',
+                        desc: 'AI prohibited. Emphasis on manual production and basic understanding.',
+                        data: [
+                            { id: 1, component: 'System Architecture', tooling: 'Student Only', granularity: 'Diagram-Level', evidence: 'E2: Process evidence', weight: 10 },
+                            { id: 2, component: 'Core Logic', tooling: 'Student Only', granularity: 'Function-Level', evidence: 'E2: Process evidence', weight: 35 },
+                            { id: 3, component: 'Syntax/Boilerplate', tooling: 'Student Only', granularity: 'Line-Level', evidence: 'E1: Final output only', weight: 35 },
+                            { id: 4, component: 'Documentation', tooling: 'Student Only', granularity: 'File-Level', evidence: 'E1: Final output only', weight: 10 },
+                            { id: 5, component: 'Debugging', tooling: 'Student Only', granularity: 'Function-Level', evidence: 'E2: Process evidence', weight: 10 }
+                        ]
+                    },
+                    tier2: {
+                        name: 'Tier 2: Hybrid',
+                        desc: 'AI as assistant. Some AI support is allowed with moderate evidence.',
+                        data: [
+                            { id: 1, component: 'System Architecture', tooling: 'Student Only', granularity: 'Diagram-Level', evidence: 'E2: Process evidence', weight: 20 },
+                            { id: 2, component: 'Core Logic', tooling: 'Student Only', granularity: 'Function-Level', evidence: 'E2: Process evidence', weight: 30 },
+                            { id: 3, component: 'Syntax/Boilerplate', tooling: 'Hybrid / Co-Pilot', granularity: 'File-Level', evidence: 'E1: Final output only', weight: 15 },
+                            { id: 4, component: 'Documentation', tooling: 'AI Allowed', granularity: 'Assignment-Level', evidence: 'AI-use label only (weak evidence)', weight: 10 },
+                            { id: 5, component: 'Debugging', tooling: 'Hybrid / Co-Pilot', granularity: 'Function-Level', evidence: 'E2: Process evidence', weight: 25 }
+                        ]
+                    },
+                    tier3: {
+                        name: 'Tier 3: Architectural',
+                        desc: 'AI as implementer. Emphasis shifts toward verification and design reasoning.',
+                        data: [
+                            { id: 1, component: 'System Architecture', tooling: 'Student Only', granularity: 'Diagram-Level', evidence: 'E3: Explanation evidence', weight: 40 },
+                            { id: 2, component: 'Core Logic', tooling: 'Hybrid / Co-Pilot', granularity: 'Function-Level', evidence: 'E2: Process evidence', weight: 30 },
+                            { id: 3, component: 'Syntax/Boilerplate', tooling: 'AI Allowed', granularity: 'File-Level', evidence: 'E1: Final output only', weight: 10 },
+                            { id: 4, component: 'Documentation', tooling: 'AI Allowed', granularity: 'Assignment-Level', evidence: 'AI-use label only (weak evidence)', weight: 5 },
+                            { id: 5, component: 'Debugging', tooling: 'Hybrid / Co-Pilot', granularity: 'Function-Level', evidence: 'E2: Process evidence', weight: 15 }
+                        ]
+                    },
+                    tier4: {
+                        name: 'Tier 4: Frontier',
+                        desc: 'AI is expected. Assessment focuses on added value, verification, and judgment.',
+                        data: [
+                            { id: 1, component: 'System Architecture', tooling: 'Student Only', granularity: 'Diagram-Level', evidence: 'E4: Live check', weight: 30 },
+                            { id: 2, component: 'Core Logic', tooling: 'Hybrid / Co-Pilot', granularity: 'Function-Level', evidence: 'E3: Explanation evidence', weight: 30 },
+                            { id: 3, component: 'Syntax/Boilerplate', tooling: 'AI Allowed', granularity: 'File-Level', evidence: 'E1: Final output only', weight: 5 },
+                            { id: 4, component: 'Documentation', tooling: 'AI Allowed', granularity: 'Assignment-Level', evidence: 'AI-use label only (weak evidence)', weight: 5 },
+                            { id: 5, component: 'Debugging', tooling: 'Hybrid / Co-Pilot', granularity: 'Function-Level', evidence: 'E3: Explanation evidence', weight: 30 }
+                        ]
+                    }
+                },
+                stressTests: {
+                    err1: {
+                        name: 'Anti-Pattern 1: Free-Rider',
+                        desc: 'High weight + AI allowed + weak evidence.',
+                        data: [
+                            { id: 1, component: 'System Architecture', tooling: 'Student Only', granularity: 'Diagram-Level', evidence: 'E2: Process evidence', weight: 20 },
+                            { id: 2, component: 'Core Logic', tooling: 'AI Allowed', granularity: 'Function-Level', evidence: 'E1: Final output only', weight: 30 },
+                            { id: 3, component: 'Syntax/Boilerplate', tooling: 'AI Allowed', granularity: 'File-Level', evidence: 'E1: Final output only', weight: 10 },
+                            { id: 4, component: 'Documentation', tooling: 'AI Allowed', granularity: 'Assignment-Level', evidence: 'AI-use label only (weak evidence)', weight: 10 },
+                            { id: 5, component: 'Debugging', tooling: 'Hybrid / Co-Pilot', granularity: 'Function-Level', evidence: 'E2: Process evidence', weight: 30 }
+                        ]
+                    },
+                    err2: {
+                        name: 'Anti-Pattern 2: Surveillance Trap',
+                        desc: 'Low-weight task demanding excessive evidence.',
+                        data: [
+                            { id: 1, component: 'System Architecture', tooling: 'Student Only', granularity: 'Diagram-Level', evidence: 'E2: Process evidence', weight: 25 },
+                            { id: 2, component: 'Core Logic', tooling: 'Student Only', granularity: 'Function-Level', evidence: 'E2: Process evidence', weight: 35 },
+                            { id: 3, component: 'Syntax/Boilerplate', tooling: 'Student Only', granularity: 'Line-Level', evidence: 'E1: Final output only', weight: 15 },
+                            { id: 4, component: 'Documentation', tooling: 'Student Only', granularity: 'Assignment-Level', evidence: 'E4: Live check', weight: 5 },
+                            { id: 5, component: 'Debugging', tooling: 'Student Only', granularity: 'Function-Level', evidence: 'E2: Process evidence', weight: 20 }
+                        ]
+                    },
+                    err3: {
+                        name: 'Anti-Pattern 3: Labor Misalignment',
+                        desc: 'Too much credit for syntax when AI is allowed.',
+                        data: [
+                            { id: 1, component: 'System Architecture', tooling: 'Student Only', granularity: 'Diagram-Level', evidence: 'E3: Explanation evidence', weight: 25 },
+                            { id: 2, component: 'Core Logic', tooling: 'Hybrid / Co-Pilot', granularity: 'Function-Level', evidence: 'E2: Process evidence', weight: 25 },
+                            { id: 3, component: 'Syntax/Boilerplate', tooling: 'AI Allowed', granularity: 'File-Level', evidence: 'E2: Process evidence', weight: 25 },
+                            { id: 4, component: 'Documentation', tooling: 'AI Allowed', granularity: 'Assignment-Level', evidence: 'AI-use label only (weak evidence)', weight: 5 },
+                            { id: 5, component: 'Debugging', tooling: 'Hybrid / Co-Pilot', granularity: 'Function-Level', evidence: 'E2: Process evidence', weight: 20 }
+                        ]
+                    },
+                    err4: {
+                        name: 'Anti-Pattern 4: Granularity Mismatch',
+                        desc: 'Line-level disclosure for a macro-level architecture task.',
+                        data: [
+                            { id: 1, component: 'System Architecture', tooling: 'Hybrid / Co-Pilot', granularity: 'Line-Level', evidence: 'E3: Explanation evidence', weight: 30 },
+                            { id: 2, component: 'Core Logic', tooling: 'Student Only', granularity: 'Function-Level', evidence: 'E2: Process evidence', weight: 30 },
+                            { id: 3, component: 'Syntax/Boilerplate', tooling: 'AI Allowed', granularity: 'File-Level', evidence: 'E1: Final output only', weight: 10 },
+                            { id: 4, component: 'Documentation', tooling: 'AI Allowed', granularity: 'Assignment-Level', evidence: 'AI-use label only (weak evidence)', weight: 5 },
+                            { id: 5, component: 'Debugging', tooling: 'Hybrid / Co-Pilot', granularity: 'Function-Level', evidence: 'E2: Process evidence', weight: 25 }
+                        ]
+                    }
+                }
             },
 
-            tier2: {
-                name: "Tier 2: Hybrid",
-                desc: "AI as assistant. Some AI support is allowed with moderate evidence.",
-                data: [
-                    { id: 1, component: 'System Architecture', tooling: 'Student Only', granularity: 'Diagram-Level', evidence: 'E2: Process evidence', weight: 20 },
-                    { id: 2, component: 'Core Logic', tooling: 'Student Only', granularity: 'Function-Level', evidence: 'E2: Process evidence', weight: 30 },
-                    { id: 3, component: 'Syntax/Boilerplate', tooling: 'Hybrid / Co-Pilot', granularity: 'File-Level', evidence: 'E1: Final output only', weight: 15 },
-                    { id: 4, component: 'Documentation', tooling: 'AI Allowed', granularity: 'Assignment-Level', evidence: 'AI-use label only (weak evidence)', weight: 10 },
-                    { id: 5, component: 'Debugging', tooling: 'Hybrid / Co-Pilot', granularity: 'Function-Level', evidence: 'E2: Process evidence', weight: 25 }
-                ]
-            },
-
-            tier3: {
-                name: "Tier 3: Architectural",
-                desc: "AI as implementer. Emphasis shifts toward verification and design reasoning.",
-                data: [
-                    { id: 1, component: 'System Architecture', tooling: 'Student Only', granularity: 'Diagram-Level', evidence: 'E3: Explanation evidence', weight: 40 },
-                    { id: 2, component: 'Core Logic', tooling: 'Hybrid / Co-Pilot', granularity: 'Function-Level', evidence: 'E2: Process evidence', weight: 30 },
-                    { id: 3, component: 'Syntax/Boilerplate', tooling: 'AI Allowed', granularity: 'File-Level', evidence: 'E1: Final output only', weight: 10 },
-                    { id: 4, component: 'Documentation', tooling: 'AI Allowed', granularity: 'Assignment-Level', evidence: 'AI-use label only (weak evidence)', weight: 5 },
-                    { id: 5, component: 'Debugging', tooling: 'Hybrid / Co-Pilot', granularity: 'Function-Level', evidence: 'E2: Process evidence', weight: 15 }
-                ]
-            },
-
-            tier4: {
-                name: "Tier 4: Frontier",
-                desc: "AI is expected. Assessment focuses on added value, verification, and judgment.",
-                data: [
-                    { id: 1, component: 'System Architecture', tooling: 'Student Only', granularity: 'Diagram-Level', evidence: 'E4: Live check', weight: 30 },
-                    { id: 2, component: 'Core Logic', tooling: 'Hybrid / Co-Pilot', granularity: 'Function-Level', evidence: 'E3: Explanation evidence', weight: 30 },
-                    { id: 3, component: 'Syntax/Boilerplate', tooling: 'AI Allowed', granularity: 'File-Level', evidence: 'E1: Final output only', weight: 5 },
-                    { id: 4, component: 'Documentation', tooling: 'AI Allowed', granularity: 'Assignment-Level', evidence: 'AI-use label only (weak evidence)', weight: 5 },
-                    { id: 5, component: 'Debugging', tooling: 'Hybrid / Co-Pilot', granularity: 'Function-Level', evidence: 'E3: Explanation evidence', weight: 30 }
-                ]
-            }
-        };
-
-        // --- ANTI-PATTERN PRESETS ---
-        // These are hidden by default and used only for stress-testing the logic engine.
-        const errorCases = {
-            err1: {
-                name: "Anti-Pattern 1: Free-Rider",
-                desc: "High weight + AI allowed + weak evidence.",
-                data: [
-                    { id: 1, component: 'System Architecture', tooling: 'Student Only', granularity: 'Diagram-Level', evidence: 'E2: Process evidence', weight: 20 },
-                    { id: 2, component: 'Core Logic', tooling: 'AI Allowed', granularity: 'Function-Level', evidence: 'E1: Final output only', weight: 30 },
-                    { id: 3, component: 'Syntax/Boilerplate', tooling: 'AI Allowed', granularity: 'File-Level', evidence: 'E1: Final output only', weight: 10 },
-                    { id: 4, component: 'Documentation', tooling: 'AI Allowed', granularity: 'Assignment-Level', evidence: 'AI-use label only (weak evidence)', weight: 10 },
-                    { id: 5, component: 'Debugging', tooling: 'Hybrid / Co-Pilot', granularity: 'Function-Level', evidence: 'E2: Process evidence', weight: 30 }
-                ]
-            },
-
-            err2: {
-                name: "Anti-Pattern 2: Surveillance Trap",
-                desc: "Low-weight task demanding excessive evidence.",
-                data: [
-                    { id: 1, component: 'System Architecture', tooling: 'Student Only', granularity: 'Diagram-Level', evidence: 'E2: Process evidence', weight: 25 },
-                    { id: 2, component: 'Core Logic', tooling: 'Student Only', granularity: 'Function-Level', evidence: 'E2: Process evidence', weight: 35 },
-                    { id: 3, component: 'Syntax/Boilerplate', tooling: 'Student Only', granularity: 'Line-Level', evidence: 'E1: Final output only', weight: 15 },
-                    { id: 4, component: 'Documentation', tooling: 'Student Only', granularity: 'Assignment-Level', evidence: 'E4: Live check', weight: 5 },
-                    { id: 5, component: 'Debugging', tooling: 'Student Only', granularity: 'Function-Level', evidence: 'E2: Process evidence', weight: 20 }
-                ]
-            },
-
-            err3: {
-                name: "Anti-Pattern 3: Labor Misalignment",
-                desc: "Too much credit for syntax when AI is allowed.",
-                data: [
-                    { id: 1, component: 'System Architecture', tooling: 'Student Only', granularity: 'Diagram-Level', evidence: 'E3: Explanation evidence', weight: 25 },
-                    { id: 2, component: 'Core Logic', tooling: 'Hybrid / Co-Pilot', granularity: 'Function-Level', evidence: 'E2: Process evidence', weight: 25 },
-                    { id: 3, component: 'Syntax/Boilerplate', tooling: 'AI Allowed', granularity: 'File-Level', evidence: 'E2: Process evidence', weight: 25 },
-                    { id: 4, component: 'Documentation', tooling: 'AI Allowed', granularity: 'Assignment-Level', evidence: 'AI-use label only (weak evidence)', weight: 5 },
-                    { id: 5, component: 'Debugging', tooling: 'Hybrid / Co-Pilot', granularity: 'Function-Level', evidence: 'E2: Process evidence', weight: 20 }
-                ]
-            },
-
-            err4: {
-                name: "Anti-Pattern 4: Granularity Mismatch",
-                desc: "Line-level disclosure for a macro-level architecture task.",
-                data: [
-                    { id: 1, component: 'System Architecture', tooling: 'Hybrid / Co-Pilot', granularity: 'Line-Level', evidence: 'E3: Explanation evidence', weight: 30 },
-                    { id: 2, component: 'Core Logic', tooling: 'Student Only', granularity: 'Function-Level', evidence: 'E2: Process evidence', weight: 30 },
-                    { id: 3, component: 'Syntax/Boilerplate', tooling: 'AI Allowed', granularity: 'File-Level', evidence: 'E1: Final output only', weight: 10 },
-                    { id: 4, component: 'Documentation', tooling: 'AI Allowed', granularity: 'Assignment-Level', evidence: 'AI-use label only (weak evidence)', weight: 5 },
-                    { id: 5, component: 'Debugging', tooling: 'Hybrid / Co-Pilot', granularity: 'Function-Level', evidence: 'E2: Process evidence', weight: 25 }
-                ]
+            bio: {
+                label: 'Biological Science / Lab Report',
+                shortLabel: 'Biological Science',
+                badge: 'Biology Matrix',
+                desc: 'Assess experimental design, data integrity, analysis, and biological interpretation.',
+                componentModel: 'The components follow a biological scientific inquiry workflow: hypothesis, experimental design, raw observations, data analysis, and interpretation.',
+                granularityOptions: [
+                    'Whole-Report Level',
+                    'Section-Level',
+                    'Source-Level',
+                    'Claim-Level',
+                    'Figure/Table Level',
+                    'Protocol-Step Level',
+                    'Observation/Data-Point Level'
+                ],
+                evidenceExamples: {
+                    e1: 'Final lab report, final graph, final answer sheet, or final discussion paragraph only.',
+                    e2: 'Lab notebook extracts, raw data tables, protocol notes, source search logs, spreadsheet formulas, analysis files.',
+                    e3: 'Rationale for controls, explanation of statistical test choice, claim-evidence reasoning, explanation of limitations.',
+                    e4: 'Short oral defense of one figure, one control choice, one outlier, or one biological conclusion.'
+                },
+                presets: {
+                    tier1: {
+                        name: 'Tier 1: Foundational Lab',
+                        desc: 'AI mostly prohibited. Emphasis on basic lab practice and individual understanding.',
+                        data: [
+                            { id: 1, component: 'Background, Research Question & Hypothesis', tooling: 'Student Only', granularity: 'Section-Level', evidence: 'E2: Process evidence', weight: 15 },
+                            { id: 2, component: 'Experimental Design, Variables & Controls', tooling: 'Student Only', granularity: 'Protocol-Step Level', evidence: 'E3: Explanation evidence', weight: 20 },
+                            { id: 3, component: 'Data Collection, Lab Notebook & Raw Observations', tooling: 'Student Only', granularity: 'Observation/Data-Point Level', evidence: 'E2: Process evidence', weight: 30 },
+                            { id: 4, component: 'Data Analysis, Statistics & Figures', tooling: 'Student Only', granularity: 'Figure/Table Level', evidence: 'E2: Process evidence', weight: 20 },
+                            { id: 5, component: 'Discussion, Limitations & Scientific Argument', tooling: 'Student Only', granularity: 'Claim-Level', evidence: 'E3: Explanation evidence', weight: 15 }
+                        ]
+                    },
+                    tier2: {
+                        name: 'Tier 2: Hybrid Lab Report',
+                        desc: 'AI may support writing, explanation, or analysis, but process evidence is required.',
+                        data: [
+                            { id: 1, component: 'Background, Research Question & Hypothesis', tooling: 'Hybrid / Co-Pilot', granularity: 'Source-Level', evidence: 'E2: Process evidence', weight: 15 },
+                            { id: 2, component: 'Experimental Design, Variables & Controls', tooling: 'Student Only', granularity: 'Protocol-Step Level', evidence: 'E3: Explanation evidence', weight: 25 },
+                            { id: 3, component: 'Data Collection, Lab Notebook & Raw Observations', tooling: 'Student Only', granularity: 'Observation/Data-Point Level', evidence: 'E2: Process evidence', weight: 20 },
+                            { id: 4, component: 'Data Analysis, Statistics & Figures', tooling: 'Hybrid / Co-Pilot', granularity: 'Figure/Table Level', evidence: 'E2: Process evidence', weight: 20 },
+                            { id: 5, component: 'Discussion, Limitations & Scientific Argument', tooling: 'Hybrid / Co-Pilot', granularity: 'Claim-Level', evidence: 'E3: Explanation evidence', weight: 20 }
+                        ]
+                    },
+                    tier3: {
+                        name: 'Tier 3: Scientific Reasoning',
+                        desc: 'AI can assist, but grading shifts toward design rationale, data quality, and interpretation.',
+                        data: [
+                            { id: 1, component: 'Background, Research Question & Hypothesis', tooling: 'AI Allowed', granularity: 'Source-Level', evidence: 'E2: Process evidence', weight: 10 },
+                            { id: 2, component: 'Experimental Design, Variables & Controls', tooling: 'Hybrid / Co-Pilot', granularity: 'Protocol-Step Level', evidence: 'E3: Explanation evidence', weight: 30 },
+                            { id: 3, component: 'Data Collection, Lab Notebook & Raw Observations', tooling: 'Student Only', granularity: 'Observation/Data-Point Level', evidence: 'E2: Process evidence', weight: 15 },
+                            { id: 4, component: 'Data Analysis, Statistics & Figures', tooling: 'Hybrid / Co-Pilot', granularity: 'Figure/Table Level', evidence: 'E3: Explanation evidence', weight: 20 },
+                            { id: 5, component: 'Discussion, Limitations & Scientific Argument', tooling: 'Hybrid / Co-Pilot', granularity: 'Claim-Level', evidence: 'E3: Explanation evidence', weight: 25 }
+                        ]
+                    },
+                    tier4: {
+                        name: 'Tier 4: AI-Integrated Inquiry',
+                        desc: 'AI is expected. Assessment focuses on validation, judgment, and defensible biological claims.',
+                        data: [
+                            { id: 1, component: 'Background, Research Question & Hypothesis', tooling: 'AI Allowed', granularity: 'Source-Level', evidence: 'E2: Process evidence', weight: 10 },
+                            { id: 2, component: 'Experimental Design, Variables & Controls', tooling: 'Hybrid / Co-Pilot', granularity: 'Protocol-Step Level', evidence: 'E3: Explanation evidence', weight: 25 },
+                            { id: 3, component: 'Data Collection, Lab Notebook & Raw Observations', tooling: 'Student Only', granularity: 'Observation/Data-Point Level', evidence: 'E2: Process evidence', weight: 15 },
+                            { id: 4, component: 'Data Analysis, Statistics & Figures', tooling: 'AI Allowed', granularity: 'Figure/Table Level', evidence: 'E3: Explanation evidence', weight: 20 },
+                            { id: 5, component: 'Discussion, Limitations & Scientific Argument', tooling: 'Hybrid / Co-Pilot', granularity: 'Claim-Level', evidence: 'E4: Live check', weight: 30 }
+                        ]
+                    }
+                },
+                stressTests: {
+                    err1: {
+                        name: 'Anti-Pattern 1: Free-Rider',
+                        desc: 'High-value biological interpretation with AI allowed and weak evidence.',
+                        data: [
+                            { id: 1, component: 'Background, Research Question & Hypothesis', tooling: 'AI Allowed', granularity: 'Source-Level', evidence: 'AI-use label only (weak evidence)', weight: 10 },
+                            { id: 2, component: 'Experimental Design, Variables & Controls', tooling: 'Hybrid / Co-Pilot', granularity: 'Protocol-Step Level', evidence: 'E3: Explanation evidence', weight: 20 },
+                            { id: 3, component: 'Data Collection, Lab Notebook & Raw Observations', tooling: 'Student Only', granularity: 'Observation/Data-Point Level', evidence: 'E2: Process evidence', weight: 20 },
+                            { id: 4, component: 'Data Analysis, Statistics & Figures', tooling: 'Hybrid / Co-Pilot', granularity: 'Figure/Table Level', evidence: 'E2: Process evidence', weight: 20 },
+                            { id: 5, component: 'Discussion, Limitations & Scientific Argument', tooling: 'AI Allowed', granularity: 'Claim-Level', evidence: 'E1: Final output only', weight: 30 }
+                        ]
+                    },
+                    err2: {
+                        name: 'Anti-Pattern 2: Proportionality Trap',
+                        desc: 'Low-weight component demanding a live check.',
+                        data: [
+                            { id: 1, component: 'Background, Research Question & Hypothesis', tooling: 'Student Only', granularity: 'Source-Level', evidence: 'E4: Live check', weight: 5 },
+                            { id: 2, component: 'Experimental Design, Variables & Controls', tooling: 'Student Only', granularity: 'Protocol-Step Level', evidence: 'E3: Explanation evidence', weight: 30 },
+                            { id: 3, component: 'Data Collection, Lab Notebook & Raw Observations', tooling: 'Student Only', granularity: 'Observation/Data-Point Level', evidence: 'E2: Process evidence', weight: 25 },
+                            { id: 4, component: 'Data Analysis, Statistics & Figures', tooling: 'Student Only', granularity: 'Figure/Table Level', evidence: 'E2: Process evidence', weight: 20 },
+                            { id: 5, component: 'Discussion, Limitations & Scientific Argument', tooling: 'Student Only', granularity: 'Claim-Level', evidence: 'E3: Explanation evidence', weight: 20 }
+                        ]
+                    },
+                    err3: {
+                        name: 'Anti-Pattern 3: Data Integrity Blind Spot',
+                        desc: 'Important data work is assessed only through final output.',
+                        data: [
+                            { id: 1, component: 'Background, Research Question & Hypothesis', tooling: 'Hybrid / Co-Pilot', granularity: 'Source-Level', evidence: 'E2: Process evidence', weight: 10 },
+                            { id: 2, component: 'Experimental Design, Variables & Controls', tooling: 'Student Only', granularity: 'Protocol-Step Level', evidence: 'E3: Explanation evidence', weight: 20 },
+                            { id: 3, component: 'Data Collection, Lab Notebook & Raw Observations', tooling: 'Student Only', granularity: 'Whole-Report Level', evidence: 'E1: Final output only', weight: 30 },
+                            { id: 4, component: 'Data Analysis, Statistics & Figures', tooling: 'Hybrid / Co-Pilot', granularity: 'Figure/Table Level', evidence: 'E1: Final output only', weight: 25 },
+                            { id: 5, component: 'Discussion, Limitations & Scientific Argument', tooling: 'Hybrid / Co-Pilot', granularity: 'Claim-Level', evidence: 'E3: Explanation evidence', weight: 15 }
+                        ]
+                    },
+                    err4: {
+                        name: 'Anti-Pattern 4: Granularity Mismatch',
+                        desc: 'Big-picture biological reasoning is checked at data-point level.',
+                        data: [
+                            { id: 1, component: 'Background, Research Question & Hypothesis', tooling: 'Hybrid / Co-Pilot', granularity: 'Observation/Data-Point Level', evidence: 'E2: Process evidence', weight: 15 },
+                            { id: 2, component: 'Experimental Design, Variables & Controls', tooling: 'Hybrid / Co-Pilot', granularity: 'Observation/Data-Point Level', evidence: 'E3: Explanation evidence', weight: 30 },
+                            { id: 3, component: 'Data Collection, Lab Notebook & Raw Observations', tooling: 'Student Only', granularity: 'Observation/Data-Point Level', evidence: 'E2: Process evidence', weight: 20 },
+                            { id: 4, component: 'Data Analysis, Statistics & Figures', tooling: 'Hybrid / Co-Pilot', granularity: 'Figure/Table Level', evidence: 'E2: Process evidence', weight: 15 },
+                            { id: 5, component: 'Discussion, Limitations & Scientific Argument', tooling: 'Hybrid / Co-Pilot', granularity: 'Observation/Data-Point Level', evidence: 'E3: Explanation evidence', weight: 20 }
+                        ]
+                    }
+                }
             }
         };
 
         function WAMBuilder() {
+            const [activeDomain, setActiveDomain] = useState('cs');
             const [activePreset, setActivePreset] = useState('tier3');
-            const [rows, setRows] = useState(JSON.parse(JSON.stringify(presets.tier3.data)));
+            const [rows, setRows] = useState(deepClone(profiles.cs.presets.tier3.data));
             const [showStressTests, setShowStressTests] = useState(false);
 
-            const toolingOptions = ['Student Only', 'Hybrid / Co-Pilot', 'AI Allowed'];
-            const evidenceOptions = ['E1: Final output only', 'E2: Process evidence', 'E3: Explanation evidence', 'E4: Live check', 'AI-use label only (weak evidence)'];
-            const granularityOptions = ['Assignment-Level', 'File-Level', 'Diagram-Level', 'Function-Level', 'Line-Level'];
+            const profile = profiles[activeDomain];
+
+            const switchDomain = (domainKey) => {
+                setActiveDomain(domainKey);
+                setActivePreset('tier3');
+                setRows(deepClone(profiles[domainKey].presets.tier3.data));
+                setShowStressTests(false);
+            };
+
+            const applyPreset = (presetKey, isStressTest = false) => {
+                const sourceData = isStressTest
+                    ? profile.stressTests[presetKey].data
+                    : profile.presets[presetKey].data;
+
+                setActivePreset(isStressTest ? `stress-${presetKey}` : presetKey);
+                setRows(deepClone(sourceData));
+            };
 
             const updateRow = (id, field, value) => {
                 setRows(rows.map(row => row.id === id ? { ...row, [field]: value } : row));
             };
 
-            const applyPreset = (presetKey, isErrorCase = false) => {
-                const sourceData = isErrorCase ? errorCases[presetKey].data : presets[presetKey].data;
-                setActivePreset(isErrorCase ? `error-${presetKey}` : presetKey);
-                setRows(JSON.parse(JSON.stringify(sourceData)));
-            };
+            const makeIssue = (severity, title, message) => ({
+                severity,
+                title,
+                message
+            });
 
-            // --- THE 4 GEARS: THE LOGIC ENGINE ---
-            const getRowErrors = (row) => {
-                let errors = [];
+            const getRowIssues = (row) => {
+                let issues = [];
 
                 const weight = Number(row.weight);
-                const isAIPermitted = row.tooling === 'AI Allowed' || row.tooling === 'Hybrid / Co-Pilot';
-                const isWeakEvidence = row.evidence.includes('E1') || row.evidence.includes('Provenance');
-                const isStrongEvidence = row.evidence.includes('E3') || row.evidence.includes('E4');
                 const compLower = row.component.toLowerCase();
 
-                // Gear 1: Integrity
+                const isAIPermitted =
+                    row.tooling === 'AI Allowed' ||
+                    row.tooling === 'Hybrid / Co-Pilot';
+
+                const isWeakEvidence =
+                    row.evidence.includes('E1') ||
+                    row.evidence.includes('AI-use label');
+
+                const isStrongEvidence =
+                    row.evidence.includes('E3') ||
+                    row.evidence.includes('E4');
+
+                // Universal rule: high weight + AI + weak evidence
                 if (weight >= 25 && isAIPermitted && isWeakEvidence) {
-                    errors.push("Integrity Warning: This task is worth many points and AI is allowed, but the student only has to submit the final output. That is weak evidence, because AI could produce the output. Ask for process notes, tests, or an explanation.");
+                    issues.push(makeIssue(
+                        'error',
+                        'Integrity Error',
+                        'This task is worth many points and AI is allowed, but the required evidence is weak. Ask for process evidence, explanation evidence, or a live check.'
+                    ));
                 }
 
-                // Gear 2: Usability / proportionality
+                // Universal rule: low weight + heavy evidence
                 if (weight <= 10 && isStrongEvidence) {
-                    errors.push("Proportionality Warning: This task is worth few points, but it asks for heavy evidence such as a long explanation or live check. That may create too much work for a small part of the grade.");
+                    issues.push(makeIssue(
+                        'warning',
+                        'Proportionality Warning',
+                        'This task is worth few points, but it asks for heavy evidence such as a long explanation or live check. This may create too much work for a small part of the grade.'
+                    ));
                 }
 
-                // Gear 3: Pedagogical alignment
-                if ((compLower.includes('syntax') || compLower.includes('boilerplate')) && weight > 20 && isAIPermitted) {
-                    errors.push("Pedagogy Warning: This gives many points for syntax or boilerplate while AI is allowed. The grade may reward AI-generated routine code more than the student's own understanding.");
+                if (activeDomain === 'cs') {
+                    if (
+                        (compLower.includes('syntax') || compLower.includes('boilerplate')) &&
+                        weight > 20 &&
+                        isAIPermitted
+                    ) {
+                        issues.push(makeIssue(
+                            'warning',
+                            'Pedagogy Warning',
+                            'This gives many points for syntax or boilerplate while AI is allowed. The grade may reward AI-generated routine code more than the student’s own understanding.'
+                        ));
+                    }
+
+                    if (
+                        compLower.includes('architecture') &&
+                        row.granularity === 'Line-Level'
+                    ) {
+                        issues.push(makeIssue(
+                            'warning',
+                            'Granularity Warning',
+                            'System architecture is a big-picture task. Asking for line-by-line disclosure is too detailed. Use diagram-level or assignment-level evidence instead.'
+                        ));
+                    }
                 }
 
-                // Gear 4: Disclosure granularity
-                if (compLower.includes('architecture') && row.granularity === 'Line-Level') {
-                    errors.push("Granularity Warning: System architecture is a big-picture task. Asking for line-by-line disclosure is too detailed. Use diagram-level or component-level evidence.");
+                if (activeDomain === 'bio') {
+                    const isBackground =
+                        compLower.includes('background') ||
+                        compLower.includes('hypothesis');
+
+                    const isExperimentalDesign =
+                        compLower.includes('experimental design') ||
+                        compLower.includes('variables') ||
+                        compLower.includes('controls');
+
+                    const isDataCollection =
+                        compLower.includes('data collection') ||
+                        compLower.includes('lab notebook') ||
+                        compLower.includes('raw observations');
+
+                    const isDataAnalysis =
+                        compLower.includes('data analysis') ||
+                        compLower.includes('statistics') ||
+                        compLower.includes('figures');
+
+                    const isDiscussion =
+                        compLower.includes('discussion') ||
+                        compLower.includes('limitations') ||
+                        compLower.includes('scientific argument');
+
+                    if (
+                        isBackground &&
+                        isAIPermitted &&
+                        isWeakEvidence &&
+                        weight >= 10
+                    ) {
+                        issues.push(makeIssue(
+                            'warning',
+                            'Source Quality Warning',
+                            'AI can produce plausible but unreliable biological background text or citations. Ask for an annotated source list, search log, or explanation of why the sources are relevant.'
+                        ));
+                    }
+
+                    if (
+                        isExperimentalDesign &&
+                        isAIPermitted &&
+                        isWeakEvidence
+                    ) {
+                        issues.push(makeIssue(
+                            'warning',
+                            'Experimental Design Warning',
+                            'Experimental design requires justification of variables, controls, and confounders. A final answer alone is weak evidence when AI support is allowed.'
+                        ));
+                    }
+
+                    if (
+                        (isDataCollection || isDataAnalysis) &&
+                        isWeakEvidence &&
+                        weight >= 15
+                    ) {
+                        issues.push(makeIssue(
+                            'warning',
+                            'Data Integrity Warning',
+                            'Final graphs or final tables alone are not enough for important data work. Ask for raw data, lab notebook notes, spreadsheet formulas, analysis files, or explanation of excluded data.'
+                        ));
+                    }
+
+                    if (
+                        isDataCollection &&
+                        row.tooling === 'AI Allowed'
+                    ) {
+                        issues.push(makeIssue(
+                            'warning',
+                            'Observation Authenticity Warning',
+                            'For lab observations or raw measurements, AI should not replace the student’s direct observation. If AI is allowed, clarify that it may only assist with formatting, transcription, or reflection.'
+                        ));
+                    }
+
+                    if (
+                        (isDataCollection || isDataAnalysis) &&
+                        row.granularity === 'Whole-Report Level'
+                    ) {
+                        issues.push(makeIssue(
+                            'warning',
+                            'Granularity Warning',
+                            'Data work needs more specific evidence than whole-report-level disclosure. Use observation-level, protocol-step-level, or figure/table-level evidence.'
+                        ));
+                    }
+
+                    if (
+                        (isBackground || isExperimentalDesign || isDiscussion) &&
+                        row.granularity === 'Observation/Data-Point Level'
+                    ) {
+                        issues.push(makeIssue(
+                            'warning',
+                            'Granularity Warning',
+                            'This is a big-picture reasoning task. Data-point-level disclosure is too microscopic. Use source-level, protocol-step-level, section-level, or claim-level evidence instead.'
+                        ));
+                    }
                 }
 
-                return errors;
+                return issues;
             };
 
-            const totalWeight = rows.reduce((sum, row) => sum + Number(row.weight), 0);
-            const hasErrors = rows.some(row => getRowErrors(row).length > 0);
-            const canPublish = totalWeight === 100 && !hasErrors;
+            const totalWeight = rows.reduce((sum, row) => sum + Number(row.weight || 0), 0);
+            const allIssues = rows.flatMap(row => getRowIssues(row));
+            const blockingIssueCount = allIssues.filter(issue => issue.severity === 'error').length;
+            const advisoryIssueCount = allIssues.filter(issue => issue.severity === 'warning').length;
+            const canPublish = totalWeight === 100 && blockingIssueCount === 0;
+
+            const getStatusText = () => {
+                if (totalWeight !== 100) return 'Fix total weight';
+                if (blockingIssueCount > 0) return 'Blocking issue found';
+                if (advisoryIssueCount > 0) return 'Publishable with warnings';
+                return 'Matrix valid';
+            };
+
+            const getStatusClass = () => {
+                if (totalWeight !== 100 || blockingIssueCount > 0) {
+                    return 'bg-gray-600 cursor-not-allowed opacity-60';
+                }
+                if (advisoryIssueCount > 0) {
+                    return 'bg-amber-600 hover:bg-amber-500';
+                }
+                return 'bg-blue-600 hover:bg-blue-500';
+            };
 
             return (
-                <div className="max-w-7xl mx-auto bg-white p-6 rounded-lg shadow-xl">
-                    <div className="border-b pb-4 mb-6">
-                        <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight mb-2">
-                            Dynamic Assessment Protocol (DAP)
-                        </h1>
-                        <p className="text-gray-600 text-lg">
-                            Instructor Matrix Builder: align permitted AI tooling with evidence and grading weight.
-                        </p>
+                <div className="w-full max-w-[1900px] mx-auto bg-white p-5 rounded-lg shadow-xl">
+                    {/* Header */}
+                    <div className="border-b pb-4 mb-5">
+                        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
+                            <div>
+                                <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight mb-1">
+                                    Dynamic Assessment Protocol (DAP)
+                                </h1>
+                                <p className="text-gray-600 text-base">
+                                    Instructor Matrix Builder: align permitted AI tooling with evidence and grading weight.
+                                </p>
+                            </div>
+
+                            <div className="bg-blue-50 border border-blue-200 text-blue-800 text-xs font-bold px-3 py-2 rounded-full">
+                                {profile.badge}
+                            </div>
+                        </div>
                     </div>
 
-                    {/* Short participant guide */}
-                    <div className="mb-6 bg-gray-50 p-4 rounded-lg border border-gray-200">
-                        <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wider mb-2">
-                            Quick guide for this test
-                        </h2>
-                        <p className="text-sm text-gray-700 leading-relaxed">
-                            This table always uses the same five assignment components: System Architecture,
-                            Core Logic, Syntax/Boilerplate, Documentation, and Debugging. The presets change the
-                            AI policy, evidence level, disclosure granularity, and grading weight. A warning means
-                            that the current configuration may be inconsistent, disproportionate, or difficult to justify.
-                            In this prototype, evidence means proof that the student understands the submitted work.
-                            Weak evidence is only the final output. Stronger evidence can include process notes, tests,
-                            explanations, or a short oral check.
-                        </p>
-                    </div>
-
-                    {/* Valid Presets */}
-                    <div className="mb-6 bg-blue-50 p-4 rounded-lg border border-blue-200">
-                        <h2 className="text-sm font-bold text-blue-800 uppercase tracking-wider mb-3">
-                            1. Choose a valid assessment preset
+                    {/* Assessment Context Selector */}
+                    <div className="mb-5 bg-slate-50 p-4 rounded-lg border border-slate-200">
+                        <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider mb-3">
+                            1. Choose assessment context
                         </h2>
 
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                            {Object.keys(presets).map(key => (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {Object.keys(profiles).map(key => (
                                 <button
                                     key={key}
-                                    onClick={() => applyPreset(key, false)}
-                                    className={`p-3 rounded-md text-left transition-all duration-200 border-2 ${
-                                        activePreset === key
-                                            ? 'border-blue-600 bg-white shadow-md'
-                                            : 'border-transparent bg-white shadow hover:border-blue-300'
+                                    onClick={() => switchDomain(key)}
+                                    className={`p-3 rounded-md text-left transition-all border-2 ${
+                                        activeDomain === key
+                                            ? 'border-blue-600 bg-white shadow-sm'
+                                            : 'border-transparent bg-white shadow-sm hover:border-blue-300'
                                     }`}
                                 >
-                                    <div className="font-bold text-blue-700 text-sm">
-                                        {presets[key].name}
+                                    <div className="font-bold text-blue-700 text-sm wrap-text">
+                                        {profiles[key].label}
                                     </div>
-                                    <div className="text-xs text-gray-600 mt-1 leading-tight">
-                                        {presets[key].desc}
+                                    <div className="text-xs text-gray-600 mt-1 wrap-text">
+                                        {profiles[key].desc}
                                     </div>
                                 </button>
                             ))}
                         </div>
                     </div>
 
-                    {/* Matrix Editor UI */}
-                    <div className="mb-4 flex justify-between items-end">
-                        <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wider">
-                            2. Live logic matrix
+                    {/* Quick Guide */}
+                    <div className="mb-5 bg-gray-50 p-4 rounded-lg border border-gray-200">
+                        <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wider mb-2">
+                            Quick guide
                         </h2>
-                        <span className="text-xs text-blue-600 font-semibold bg-blue-100 px-2 py-1 rounded animate-pulse">
-                            Logic Engine Active
-                        </span>
+
+                        <p className="text-sm text-gray-700 leading-relaxed wrap-text">
+                            Current context: <span className="font-bold">{profile.label}</span>. {profile.componentModel}
+                            Evidence means proof that the student understands the submitted work. Weak evidence is only the final output
+                            or an AI-use label alone. Stronger evidence can include process notes, tests, explanations, lab records,
+                            data files, or a short oral check.
+                        </p>
                     </div>
 
-                    <div className="overflow-x-auto shadow-sm border border-gray-200 rounded-lg mb-6">
-                        <table className="w-full text-left border-collapse">
+                    {/* Valid Presets */}
+                    <div className="mb-5 bg-blue-50 p-4 rounded-lg border border-blue-200">
+                        <h2 className="text-sm font-bold text-blue-800 uppercase tracking-wider mb-3">
+                            2. Choose a valid assessment preset
+                        </h2>
+
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                            {Object.keys(profile.presets).map(key => (
+                                <button
+                                    key={key}
+                                    onClick={() => applyPreset(key, false)}
+                                    className={`p-3 rounded-md text-left transition-all border-2 ${
+                                        activePreset === key
+                                            ? 'border-blue-600 bg-white shadow-sm'
+                                            : 'border-transparent bg-white shadow-sm hover:border-blue-300'
+                                    }`}
+                                >
+                                    <div className="font-bold text-blue-700 text-sm wrap-text">
+                                        {profile.presets[key].name}
+                                    </div>
+                                    <div className="text-xs text-gray-600 mt-1 leading-tight wrap-text">
+                                        {profile.presets[key].desc}
+                                    </div>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Matrix */}
+                    <div className="mb-3 flex flex-col md:flex-row md:justify-between md:items-end gap-2">
+                        <div>
+                            <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wider">
+                                3. Live logic matrix
+                            </h2>
+                        </div>
+
+                        <div className="flex flex-wrap gap-2">
+                            <span className="text-xs text-blue-600 font-semibold bg-blue-100 px-2 py-1 rounded">
+                                Logic Engine Active
+                            </span>
+                            <span className="text-xs text-gray-700 font-semibold bg-gray-100 px-2 py-1 rounded">
+                                {profile.shortLabel}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div className="border border-gray-200 rounded-lg shadow-sm overflow-hidden mb-5">
+                        <table className="matrix-table text-left border-collapse">
+                            <colgroup>
+                                <col style={{ width: '23%' }} />
+                                <col style={{ width: '12%' }} />
+                                <col style={{ width: '15%' }} />
+                                <col style={{ width: '16%' }} />
+                                <col style={{ width: '7%' }} />
+                                <col style={{ width: '27%' }} />
+                            </colgroup>
+
                             <thead>
                                 <tr className="bg-gray-100 text-gray-700 text-xs uppercase tracking-wider">
-                                    <th className="p-4 border-b">Component of Work</th>
-                                    <th className="p-4 border-b">Tooling</th>
-                                    <th className="p-4 border-b">Granularity</th>
-                                    <th className="p-4 border-b">Evidence Required</th>
-                                    <th className="p-4 border-b w-20 text-center">Weight</th>
-                                    <th className="p-4 border-b w-96">System Warnings</th>
+                                    <th className="p-3 border-b">Component of Work</th>
+                                    <th className="p-3 border-b">Tooling</th>
+                                    <th className="p-3 border-b">Granularity</th>
+                                    <th className="p-3 border-b">Evidence Required</th>
+                                    <th className="p-3 border-b text-center">Weight</th>
+                                    <th className="p-3 border-b">System Feedback</th>
                                 </tr>
                             </thead>
 
                             <tbody className="bg-white">
                                 {rows.map((row) => {
-                                    const errors = getRowErrors(row);
+                                    const issues = getRowIssues(row);
+                                    const hasError = issues.some(issue => issue.severity === 'error');
+                                    const hasWarning = issues.some(issue => issue.severity === 'warning');
+
+                                    const rowBg = hasError
+                                        ? 'bg-red-50/40'
+                                        : hasWarning
+                                            ? 'bg-amber-50/40'
+                                            : 'hover:bg-blue-50/40';
 
                                     return (
-                                        <tr
-                                            key={row.id}
-                                            className={`border-b transition-colors ${
-                                                errors.length > 0 ? 'bg-red-50/50' : 'hover:bg-blue-50'
-                                            }`}
-                                        >
+                                        <tr key={row.id} className={`border-b ${rowBg}`}>
+                                            {/* Component */}
                                             <td className="p-3 border-r border-gray-100">
-                                                <input
-                                                    type="text"
-                                                    value={row.component}
-                                                    readOnly
-                                                    className="w-full p-2 border border-gray-200 rounded text-sm font-medium text-gray-800 bg-gray-100 cursor-not-allowed"
-                                                    title="Component names are fixed for this usability test."
-                                                />
+                                                <div className="w-full p-2 rounded-md border border-gray-200 bg-gray-50 text-sm font-semibold text-gray-900 leading-snug wrap-text">
+                                                    {row.component}
+                                                </div>
                                             </td>
 
+                                            {/* Tooling */}
                                             <td className="p-3 border-r border-gray-100">
                                                 <select
                                                     value={row.tooling}
                                                     onChange={(e) => updateRow(row.id, 'tooling', e.target.value)}
-                                                    className="w-full p-2 border border-gray-300 rounded text-sm bg-white"
+                                                    className="compact-select w-full p-2 border border-gray-300 rounded-md text-sm bg-white"
                                                 >
-                                                    {toolingOptions.map(opt => <option key={opt}>{opt}</option>)}
+                                                    {toolingOptions.map(opt => (
+                                                        <option key={opt}>{opt}</option>
+                                                    ))}
                                                 </select>
                                             </td>
 
+                                            {/* Granularity */}
                                             <td className="p-3 border-r border-gray-100">
                                                 <select
                                                     value={row.granularity}
                                                     onChange={(e) => updateRow(row.id, 'granularity', e.target.value)}
-                                                    className="w-full p-2 border border-gray-300 rounded text-sm bg-white"
+                                                    className="compact-select w-full p-2 border border-gray-300 rounded-md text-sm bg-white"
                                                 >
-                                                    {granularityOptions.map(opt => <option key={opt}>{opt}</option>)}
+                                                    {profile.granularityOptions.map(opt => (
+                                                        <option key={opt}>{opt}</option>
+                                                    ))}
                                                 </select>
                                             </td>
 
+                                            {/* Evidence */}
                                             <td className="p-3 border-r border-gray-100">
                                                 <select
                                                     value={row.evidence}
                                                     onChange={(e) => updateRow(row.id, 'evidence', e.target.value)}
-                                                    className="w-full p-2 border border-gray-300 rounded text-sm bg-white"
+                                                    className="compact-select w-full p-2 border border-gray-300 rounded-md text-sm bg-white"
                                                 >
-                                                    {evidenceOptions.map(opt => <option key={opt}>{opt}</option>)}
+                                                    {evidenceOptions.map(opt => (
+                                                        <option key={opt}>{opt}</option>
+                                                    ))}
                                                 </select>
                                             </td>
 
+                                            {/* Weight */}
                                             <td className="p-3 border-r border-gray-100">
-                                                <input
-                                                    type="number"
-                                                    value={row.weight}
-                                                    onChange={(e) => updateRow(row.id, 'weight', e.target.value)}
-                                                    className="w-full p-2 border border-gray-300 rounded text-center font-bold text-sm"
-                                                />
+                                                <div className="flex items-center gap-1">
+                                                    <input
+                                                        type="number"
+                                                        min="0"
+                                                        max="100"
+                                                        step="5"
+                                                        value={row.weight}
+                                                        onChange={(e) => updateRow(row.id, 'weight', e.target.value)}
+                                                        className="compact-input w-full p-2 border border-gray-300 rounded-md text-center font-bold text-sm bg-white"
+                                                    />
+                                                    <span className="text-xs font-bold text-gray-500">%</span>
+                                                </div>
                                             </td>
 
-                                            <td className="p-3 text-sm">
-                                                {errors.length === 0 ? (
-                                                    <span className="text-green-600 font-semibold flex items-center text-xs">
-                                                        <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"></path>
-                                                        </svg>
-                                                        Valid alignment
-                                                    </span>
+                                            {/* Feedback */}
+                                            <td className="p-3">
+                                                {issues.length === 0 ? (
+                                                    <div className="inline-flex items-start gap-2 text-green-700 font-semibold text-sm bg-green-50 border border-green-200 px-3 py-2 rounded-md wrap-text">
+                                                        <span className="font-bold">✓</span>
+                                                        <span>Valid alignment</span>
+                                                    </div>
                                                 ) : (
-                                                    <div className="text-red-700 font-bold bg-red-100 p-2 rounded">
-                                                        {errors.map((err, i) => (
-                                                            <p key={i} className="text-xs flex items-start leading-tight mb-1 last:mb-0">
-                                                                <span className="mr-1">⚠️</span>
-                                                                {err}
-                                                            </p>
+                                                    <div className="space-y-2">
+                                                        {issues.map((issue, i) => (
+                                                            <div
+                                                                key={i}
+                                                                className={`p-2 rounded-md border text-sm leading-snug wrap-text ${
+                                                                    issue.severity === 'error'
+                                                                        ? 'bg-red-50 border-red-200 text-red-800'
+                                                                        : 'bg-amber-50 border-amber-200 text-amber-900'
+                                                                }`}
+                                                            >
+                                                                <div className="font-bold mb-1">
+                                                                    {issue.severity === 'error' ? '⛔ ' : '⚠️ '}
+                                                                    {issue.title}
+                                                                </div>
+                                                                <div>
+                                                                    {issue.message}
+                                                                </div>
+                                                            </div>
                                                         ))}
                                                     </div>
                                                 )}
@@ -349,41 +764,46 @@
                         </table>
                     </div>
 
-                    {/* Total weight and publish state */}
-                    <div className="flex justify-between items-center bg-gray-800 p-5 rounded-lg shadow-inner mb-8">
-                        <div className="text-xl font-bold text-white">
-                            Total Assessment Weight:
-                            <span className={totalWeight === 100 ? "text-green-400 ml-3" : "text-red-400 ml-3"}>
-                                {totalWeight}%
-                            </span>
+                    {/* Total Weight */}
+                    <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-3 bg-gray-800 p-4 rounded-lg shadow-inner mb-5">
+                        <div>
+                            <div className="text-lg font-bold text-white">
+                                Total Assessment Weight:
+                                <span className={totalWeight === 100 ? "text-green-400 ml-2" : "text-red-400 ml-2"}>
+                                    {totalWeight}%
+                                </span>
+                            </div>
+
+                            <div className="text-xs text-gray-300 mt-1">
+                                Blocking errors: <span className="font-bold text-red-300">{blockingIssueCount}</span>
+                                <span className="mx-2">|</span>
+                                Advisory warnings: <span className="font-bold text-amber-300">{advisoryIssueCount}</span>
+                            </div>
                         </div>
 
                         <button
-                            className={`px-8 py-3 rounded-md text-white font-bold transition-all ${
-                                canPublish
-                                    ? 'bg-blue-600 hover:bg-blue-500 shadow-[0_0_15px_rgba(37,99,235,0.5)]'
-                                    : 'bg-gray-600 cursor-not-allowed opacity-50'
-                            }`}
+                            disabled={!canPublish}
+                            className={`px-6 py-2 rounded-md text-white font-bold transition-all ${getStatusClass()}`}
                         >
-                            {canPublish ? 'Matrix Valid' : 'Matrix Not Yet Valid'}
+                            {getStatusText()}
                         </button>
                     </div>
 
-                    {/* Hidden stress-test section */}
+                    {/* Stress Tests */}
                     <div className="bg-red-50 p-4 rounded-lg border border-red-200">
-                        <div className="flex items-center justify-between gap-4">
+                        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                             <div>
                                 <h2 className="text-sm font-bold text-red-800 uppercase tracking-wider">
                                     Optional: logic stress tests
                                 </h2>
                                 <p className="text-xs text-red-700 mt-1">
-                                    These presets intentionally inject problematic configurations. Use them only when testing whether warnings are understandable.
+                                    These presets intentionally inject problematic configurations.
                                 </p>
                             </div>
 
                             <button
                                 onClick={() => setShowStressTests(!showStressTests)}
-                                className="px-4 py-2 bg-red-700 text-white text-sm font-bold rounded-md hover:bg-red-800 transition"
+                                className="px-4 py-2 bg-red-700 text-white text-sm font-bold rounded-md hover:bg-red-800 transition self-start md:self-auto"
                                 aria-expanded={showStressTests}
                             >
                                 {showStressTests ? 'Hide stress tests' : 'Show stress tests'}
@@ -391,22 +811,23 @@
                         </div>
 
                         {showStressTests && (
-                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
-                                {Object.keys(errorCases).map(key => (
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mt-4">
+                                {Object.keys(profile.stressTests).map(key => (
                                     <button
                                         key={key}
                                         onClick={() => applyPreset(key, true)}
-                                        className={`p-3 rounded-md text-left transition-all duration-200 border-2 ${
-                                            activePreset === `error-${key}`
-                                                ? 'border-red-600 bg-white shadow-md'
-                                                : 'border-red-100 bg-white shadow hover:border-red-400'
+                                        className={`p-3 rounded-md text-left transition-all border-2 ${
+                                            activePreset === `stress-${key}`
+                                                ? 'border-red-600 bg-white shadow-sm'
+                                                : 'border-red-100 bg-white shadow-sm hover:border-red-400'
                                         }`}
                                     >
-                                        <div className="font-bold text-red-700 text-sm">
-                                            {errorCases[key].name}
+                                        <div className="font-bold text-red-700 text-sm wrap-text">
+                                            {profile.stressTests[key].name}
                                         </div>
-                                        <div className="text-xs text-gray-600 mt-1 leading-tight">
-                                            {errorCases[key].desc}
+
+                                        <div className="text-xs text-gray-600 mt-1 leading-tight wrap-text">
+                                            {profile.stressTests[key].desc}
                                         </div>
                                     </button>
                                 ))}
@@ -422,4 +843,3 @@
     </script>
 </body>
 </html>
-EOF
