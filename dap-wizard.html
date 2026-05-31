@@ -11,124 +11,409 @@
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 
-<body class="bg-gray-100 p-8 font-sans flex justify-center items-center min-h-screen">
-    <div id="root" class="w-full max-w-2xl"></div>
+<body class="bg-gray-100 p-4 md:p-8 font-sans flex justify-center items-center min-h-screen">
+    <div id="root" class="w-full max-w-3xl"></div>
 
     <script type="text/babel">
         const { useState } = React;
 
-        const componentOptions = [
+        /*
+          Option ordering principle:
+
+          Tooling:
+          - least AI agency to most AI agency
+
+          Granularity:
+          - broadest disclosure level to finest disclosure level
+
+          Evidence:
+          - weakest evidence to strongest evidence
+          - "AI-use label only (weak evidence)" remains separate from E1
+          - It is placed before E1 because it is not stronger than E1/E2/E3/E4
+        */
+
+        const toolingOptions = [
             {
-                label: 'System Architecture',
-                desc: 'Overall design, structure, and major system choices.'
+                label: 'Student Only',
+                desc: 'The student completes this component without AI assistance.'
             },
             {
-                label: 'Core Logic',
-                desc: 'Main reasoning, algorithmic, or functional part of the work.'
+                label: 'Hybrid / Co-Pilot',
+                desc: 'AI may assist, but the student remains responsible for judgment and verification.'
             },
             {
-                label: 'Syntax/Boilerplate',
-                desc: 'Routine code, formatting, or low-level implementation details.'
-            },
-            {
-                label: 'Documentation',
-                desc: 'Explanations, comments, README text, or written description.'
-            },
-            {
-                label: 'Debugging',
-                desc: 'Testing, fixing errors, and checking whether the output works.'
+                label: 'AI Allowed',
+                desc: 'AI use is permitted for this component, with suitable evidence of understanding.'
             }
         ];
 
+        const evidenceOptions = [
+            {
+                id: 'AI_LABEL',
+                label: 'AI-use label only (weak evidence)',
+                desc: 'The student only declares AI use. This is weak because it does not prove understanding.'
+            },
+            {
+                id: 'E1',
+                label: 'E1: Final output only',
+                desc: 'Only the final artifact is submitted. This is weak evidence when AI could produce the output.'
+            },
+            {
+                id: 'E2',
+                label: 'E2: Process evidence',
+                desc: 'Process notes, tests, logs, raw data, drafts, or intermediate work.'
+            },
+            {
+                id: 'E3',
+                label: 'E3: Explanation evidence',
+                desc: 'The student explains choices, reasoning, interpretation, or design rationale.'
+            },
+            {
+                id: 'E4',
+                label: 'E4: Live check',
+                desc: 'A short oral check where the student explains specific choices or results.'
+            }
+        ];
+
+        const profiles = {
+            cs: {
+                label: 'Computer Science / Software Design',
+                shortLabel: 'Computer Science',
+                desc: 'Software design, implementation, documentation, and debugging.',
+                componentModel: 'The components follow a software development workflow.',
+                components: [
+                    {
+                        label: 'System Architecture',
+                        desc: 'Overall design, structure, and major system choices.'
+                    },
+                    {
+                        label: 'Core Logic',
+                        desc: 'Main reasoning, algorithmic, or functional part of the work.'
+                    },
+                    {
+                        label: 'Syntax/Boilerplate',
+                        desc: 'Routine code, formatting, or low-level implementation details.'
+                    },
+                    {
+                        label: 'Documentation',
+                        desc: 'Explanations, comments, README text, or written description.'
+                    },
+                    {
+                        label: 'Debugging',
+                        desc: 'Testing, fixing errors, and checking whether the output works.'
+                    }
+                ],
+                granularityOptions: [
+                    'Assignment-Level',
+                    'Diagram-Level',
+                    'File-Level',
+                    'Function-Level',
+                    'Line-Level'
+                ]
+            },
+
+            bio: {
+                label: 'Biological Science / Lab Report',
+                shortLabel: 'Biological Science',
+                desc: 'Experimental design, data integrity, analysis, and biological interpretation.',
+                componentModel: 'The components follow a biological scientific inquiry workflow.',
+                components: [
+                    {
+                        label: 'Background, Research Question & Hypothesis',
+                        desc: 'Biological context, research question, and testable hypothesis.'
+                    },
+                    {
+                        label: 'Experimental Design, Variables & Controls',
+                        desc: 'Design choices, independent/dependent variables, controls, and confounders.'
+                    },
+                    {
+                        label: 'Data Collection, Lab Notebook & Raw Observations',
+                        desc: 'Raw observations, measurements, protocol notes, and lab notebook evidence.'
+                    },
+                    {
+                        label: 'Data Analysis, Statistics & Figures',
+                        desc: 'Data cleaning, statistical choices, graphs, tables, and analysis workflow.'
+                    },
+                    {
+                        label: 'Discussion, Limitations & Scientific Argument',
+                        desc: 'Biological interpretation, limitations, uncertainty, and evidence-based claims.'
+                    }
+                ],
+                granularityOptions: [
+                    'Whole-Report Level',
+                    'Section-Level',
+                    'Source-Level',
+                    'Claim-Level',
+                    'Figure/Table Level',
+                    'Protocol-Step Level',
+                    'Observation/Data-Point Level'
+                ]
+            }
+        };
+
         function DAPWizard() {
+            const totalSteps = 6;
+
+            const [activeDomain, setActiveDomain] = useState('cs');
             const [step, setStep] = useState(1);
 
-            // State for the single component being built
             const [data, setData] = useState({
                 component: '',
                 tooling: '',
+                granularity: '',
                 weight: 50,
                 evidence: ''
             });
+
+            const profile = profiles[activeDomain];
 
             const resetWizard = () => {
                 setData({
                     component: '',
                     tooling: '',
+                    granularity: '',
                     weight: 50,
                     evidence: ''
                 });
                 setStep(1);
             };
 
-            // Dynamic options based on previous choices
-            const getAvailableEvidence = () => {
-                let options = [
-                    {
-                        id: 'E1',
-                        label: 'E1: Final output only: Final Output Only',
-                        disabled: false,
-                        reason: ''
-                    },
-                    {
-                        id: 'E2',
-                        label: 'E2: Process evidence: Process Evidence / Tests',
-                        disabled: false,
-                        reason: ''
-                    },
-                    {
-                        id: 'E3',
-                        label: 'E3: Explanation evidence: Design Rationale / Explanation',
-                        disabled: false,
-                        reason: ''
-                    },
-                    {
-                        id: 'E4',
-                        label: 'E4: Live check / short oral explanation',
-                        disabled: false,
-                        reason: ''
-                    }
-                ];
-
-                // Logic Gear 1: Free-rider prevention
-                if (data.weight >= 25 && data.tooling !== 'Student Only') {
-                    options[0].disabled = true;
-                    options[0].reason = "Disabled: this task is worth many points and AI is allowed. The final output alone is weak evidence because AI could produce it. Ask for process notes, tests, or an explanation.";
-                }
-
-                // Logic Gear 2: Proportionality / workload prevention
-                if (data.weight <= 10) {
-                    options[2].disabled = true;
-                    options[2].reason = "Disabled: this task is worth few points. A long explanation may create too much work for a small part of the grade.";
-                    options[3].disabled = true;
-                    options[3].reason = "Disabled: this task is worth few points. A live oral check may create too much work for a small part of the grade.";
-                }
-
-                return options;
+            const switchDomain = (domainKey) => {
+                setActiveDomain(domainKey);
+                setData({
+                    component: '',
+                    tooling: '',
+                    granularity: '',
+                    weight: 50,
+                    evidence: ''
+                });
+                setStep(1);
             };
 
             const nextStep = () => setStep(step + 1);
             const prevStep = () => setStep(step - 1);
 
-            return (
-                <div className="bg-white p-8 rounded-xl shadow-2xl">
-                    {/* Header */}
-                    <div className="mb-8 border-b pb-4">
-                        <h1 className="text-2xl font-bold text-gray-800">
-                            DAP Component Builder
-                        </h1>
+            const isAIPermitted = () => {
+                return data.tooling === 'Hybrid / Co-Pilot' || data.tooling === 'AI Allowed';
+            };
 
-                        <p className="text-gray-500 text-sm mt-1">
-                            Interface B: Progressive Disclosure Wizard
-                        </p>
+            const isWeakEvidenceLabel = (label) => {
+                return label === 'AI-use label only (weak evidence)' || label === 'E1: Final output only';
+            };
+
+            const getComponentFlags = () => {
+                const compLower = data.component.toLowerCase();
+
+                return {
+                    isArchitecture:
+                        compLower.includes('architecture'),
+
+                    isBackground:
+                        compLower.includes('background') ||
+                        compLower.includes('hypothesis'),
+
+                    isExperimentalDesign:
+                        compLower.includes('experimental design') ||
+                        compLower.includes('variables') ||
+                        compLower.includes('controls'),
+
+                    isDataCollection:
+                        compLower.includes('data collection') ||
+                        compLower.includes('lab notebook') ||
+                        compLower.includes('raw observations'),
+
+                    isDataAnalysis:
+                        compLower.includes('data analysis') ||
+                        compLower.includes('statistics') ||
+                        compLower.includes('figures'),
+
+                    isDiscussion:
+                        compLower.includes('discussion') ||
+                        compLower.includes('limitations') ||
+                        compLower.includes('scientific argument')
+                };
+            };
+
+            const getAvailableGranularity = () => {
+                const flags = getComponentFlags();
+
+                return profile.granularityOptions.map(label => {
+                    let disabled = false;
+                    let reason = '';
+
+                    if (
+                        activeDomain === 'cs' &&
+                        flags.isArchitecture &&
+                        label === 'Line-Level'
+                    ) {
+                        disabled = true;
+                        reason = 'Disabled: system architecture is a big-picture task. Line-level disclosure is too detailed.';
+                    }
+
+                    if (
+                        activeDomain === 'bio' &&
+                        (flags.isDataCollection || flags.isDataAnalysis) &&
+                        label === 'Whole-Report Level'
+                    ) {
+                        disabled = true;
+                        reason = 'Disabled: data work needs more specific evidence than whole-report-level disclosure.';
+                    }
+
+                    if (
+                        activeDomain === 'bio' &&
+                        (flags.isBackground || flags.isExperimentalDesign || flags.isDiscussion) &&
+                        label === 'Observation/Data-Point Level'
+                    ) {
+                        disabled = true;
+                        reason = 'Disabled: this is a big-picture reasoning task. Data-point-level disclosure is too microscopic.';
+                    }
+
+                    return {
+                        label,
+                        disabled,
+                        reason
+                    };
+                });
+            };
+
+            const getAvailableEvidence = () => {
+                const flags = getComponentFlags();
+
+                return evidenceOptions.map(opt => {
+                    let disabled = false;
+                    let reason = '';
+
+                    const isWeak = isWeakEvidenceLabel(opt.label);
+
+                    // Universal DAP rule: high weight + AI permitted + weak evidence
+                    if (
+                        data.weight >= 25 &&
+                        isAIPermitted() &&
+                        isWeak
+                    ) {
+                        disabled = true;
+                        reason = 'Disabled: this task is worth many points and AI is allowed. Weak evidence is not enough. Ask for process evidence, explanation evidence, or a live check.';
+                    }
+
+                    // Universal DAP rule: low weight + heavy evidence
+                    if (
+                        data.weight <= 10 &&
+                        (opt.id === 'E3' || opt.id === 'E4')
+                    ) {
+                        disabled = true;
+                        reason = 'Disabled: this task is worth few points. Heavy evidence may create too much work for a small part of the grade.';
+                    }
+
+                    // Biology-specific: data integrity
+                    if (
+                        activeDomain === 'bio' &&
+                        (flags.isDataCollection || flags.isDataAnalysis) &&
+                        data.weight >= 15 &&
+                        isWeak
+                    ) {
+                        disabled = true;
+                        reason = 'Disabled: important data work should not be assessed only through an AI-use label or final output. Ask for raw data, lab notebook notes, analysis files, or process evidence.';
+                    }
+
+                    // Biology-specific: experimental design with AI
+                    if (
+                        activeDomain === 'bio' &&
+                        flags.isExperimentalDesign &&
+                        isAIPermitted() &&
+                        isWeak
+                    ) {
+                        disabled = true;
+                        reason = 'Disabled: experimental design requires justification of variables, controls, and confounders. Weak evidence is not enough when AI support is allowed.';
+                    }
+
+                    // Biology-specific: source quality risk
+                    if (
+                        activeDomain === 'bio' &&
+                        flags.isBackground &&
+                        isAIPermitted() &&
+                        data.weight >= 10 &&
+                        opt.label === 'AI-use label only (weak evidence)'
+                    ) {
+                        disabled = true;
+                        reason = 'Disabled: for biological background work, an AI-use label alone does not show source quality or understanding.';
+                    }
+
+                    return {
+                        ...opt,
+                        disabled,
+                        reason
+                    };
+                });
+            };
+
+            const getFinalWarnings = () => {
+                const flags = getComponentFlags();
+                const warnings = [];
+
+                if (
+                    activeDomain === 'bio' &&
+                    flags.isDataCollection &&
+                    data.tooling === 'AI Allowed'
+                ) {
+                    warnings.push(
+                        'For raw observations or measurements, clarify that AI may assist with formatting, transcription, or reflection, but should not replace the student’s direct observation.'
+                    );
+                }
+
+                return warnings;
+            };
+
+            const finalWarnings = getFinalWarnings();
+
+            return (
+                <div className="bg-white p-6 md:p-8 rounded-xl shadow-2xl">
+                    {/* Header */}
+                    <div className="mb-6 border-b pb-4">
+                        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
+                            <div>
+                                <h1 className="text-2xl font-bold text-gray-800">
+                                    DAP Component Builder
+                                </h1>
+                                <p className="text-gray-500 text-sm mt-1">
+                                    Interface B: Progressive Disclosure Wizard
+                                </p>
+                            </div>
+
+                            <div className="text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200 px-3 py-2 rounded-full self-start">
+                                {profile.shortLabel}
+                            </div>
+                        </div>
 
                         <p className="text-gray-600 text-sm mt-3 leading-relaxed">
-                            This wizard builds one assessment component step by step. It uses the same DAP/WAM logic as the matrix builder, but presents the choices in a simpler sequence. Here, evidence means proof that the student understands the submitted work, such as process notes, tests, explanations, or a short oral check.
+                            This wizard builds one assessment component step by step. It uses the same DAP/WAM logic as the matrix builder.
+                            Evidence means proof that the student understands the submitted work.
                         </p>
+
+                        {/* Context Selector */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-4">
+                            {Object.keys(profiles).map(key => (
+                                <button
+                                    key={key}
+                                    onClick={() => switchDomain(key)}
+                                    className={`p-3 rounded-lg border-2 text-left transition-all ${
+                                        activeDomain === key
+                                            ? 'border-blue-600 bg-blue-50'
+                                            : 'border-gray-200 bg-white hover:border-blue-300'
+                                    }`}
+                                >
+                                    <div className="font-bold text-sm text-gray-800">
+                                        {profiles[key].label}
+                                    </div>
+                                    <div className="text-xs text-gray-500 mt-1">
+                                        {profiles[key].desc}
+                                    </div>
+                                </button>
+                            ))}
+                        </div>
 
                         {/* Progress Bar */}
                         <div className="flex mt-4 space-x-2">
-                            {[1, 2, 3, 4, 5].map(i => (
+                            {[1, 2, 3, 4, 5, 6].map(i => (
                                 <div
                                     key={i}
                                     className={`h-2 flex-1 rounded ${step >= i ? 'bg-blue-600' : 'bg-gray-200'}`}
@@ -145,15 +430,21 @@
                             </h2>
 
                             <p className="text-gray-600 text-sm mb-4">
-                                Select one fixed assignment component. These are the same five components used in the Matrix Builder.
+                                Select one assignment component for the current context: <span className="font-bold">{profile.label}</span>.
                             </p>
 
                             <div className="space-y-3">
-                                {componentOptions.map(opt => (
+                                {profile.components.map(opt => (
                                     <button
                                         key={opt.label}
                                         onClick={() => {
-                                            setData({ ...data, component: opt.label });
+                                            setData({
+                                                ...data,
+                                                component: opt.label,
+                                                tooling: '',
+                                                granularity: '',
+                                                evidence: ''
+                                            });
                                             nextStep();
                                         }}
                                         className={`w-full p-4 border-2 rounded-lg text-left transition-all ${
@@ -178,28 +469,37 @@
                     {step === 2 && (
                         <div className="animate-fade-in">
                             <h2 className="text-xl font-bold mb-2">
-                                Step 2: What is the AI policy for "{data.component}"?
+                                Step 2: What is the AI policy?
                             </h2>
 
                             <p className="text-gray-600 text-sm mb-4">
-                                Choose how much AI assistance is allowed for this component.
+                                Component: <span className="font-bold">{data.component}</span>
                             </p>
 
                             <div className="space-y-3">
-                                {['Student Only', 'Hybrid / Co-Pilot', 'AI Allowed'].map(opt => (
+                                {toolingOptions.map(opt => (
                                     <button
-                                        key={opt}
+                                        key={opt.label}
                                         onClick={() => {
-                                            setData({ ...data, tooling: opt });
+                                            setData({
+                                                ...data,
+                                                tooling: opt.label,
+                                                evidence: ''
+                                            });
                                             nextStep();
                                         }}
-                                        className={`w-full p-4 border-2 rounded-lg text-left text-lg font-medium transition-all ${
-                                            data.tooling === opt
+                                        className={`w-full p-4 border-2 rounded-lg text-left transition-all ${
+                                            data.tooling === opt.label
                                                 ? 'border-blue-600 bg-blue-50'
                                                 : 'border-gray-200 hover:border-blue-400 bg-white'
                                         }`}
                                     >
-                                        {opt}
+                                        <div className="text-lg font-bold text-gray-800">
+                                            {opt.label}
+                                        </div>
+                                        <div className="text-sm text-gray-500 mt-1">
+                                            {opt.desc}
+                                        </div>
                                     </button>
                                 ))}
                             </div>
@@ -213,11 +513,64 @@
                         </div>
                     )}
 
-                    {/* Step 3: Weight */}
+                    {/* Step 3: Granularity */}
                     {step === 3 && (
                         <div className="animate-fade-in">
                             <h2 className="text-xl font-bold mb-2">
-                                Step 3: Grading Weight
+                                Step 3: Disclosure Granularity
+                            </h2>
+
+                            <p className="text-gray-600 text-sm mb-4">
+                                Choose the level at which students should disclose or evidence their work.
+                            </p>
+
+                            <div className="space-y-3">
+                                {getAvailableGranularity().map(opt => (
+                                    <div key={opt.label}>
+                                        <button
+                                            onClick={() => {
+                                                setData({
+                                                    ...data,
+                                                    granularity: opt.label,
+                                                    evidence: ''
+                                                });
+                                                nextStep();
+                                            }}
+                                            disabled={opt.disabled}
+                                            className={`w-full p-4 border-2 rounded-lg text-left text-lg font-medium transition-all ${
+                                                opt.disabled
+                                                    ? 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed'
+                                                    : data.granularity === opt.label
+                                                        ? 'border-blue-600 bg-blue-50 text-gray-800'
+                                                        : 'border-gray-200 hover:border-blue-400 text-gray-800 bg-white'
+                                            }`}
+                                        >
+                                            {opt.label}
+                                        </button>
+
+                                        {opt.disabled && (
+                                            <p className="text-xs text-red-600 mt-1 ml-2 leading-relaxed">
+                                                🔒 {opt.reason}
+                                            </p>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+
+                            <button
+                                onClick={prevStep}
+                                className="mt-4 text-gray-500 font-medium hover:text-gray-800"
+                            >
+                                ← Back
+                            </button>
+                        </div>
+                    )}
+
+                    {/* Step 4: Weight */}
+                    {step === 4 && (
+                        <div className="animate-fade-in">
+                            <h2 className="text-xl font-bold mb-2">
+                                Step 4: Grading Weight
                             </h2>
 
                             <p className="text-gray-600 mb-4">
@@ -231,7 +584,11 @@
                                     max="100"
                                     step="5"
                                     value={data.weight}
-                                    onChange={e => setData({ ...data, weight: Number(e.target.value) })}
+                                    onChange={e => setData({
+                                        ...data,
+                                        weight: Number(e.target.value),
+                                        evidence: ''
+                                    })}
                                     className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
                                 />
 
@@ -258,18 +615,19 @@
                         </div>
                     )}
 
-                    {/* Step 4: Evidence */}
-                    {step === 4 && (
+                    {/* Step 5: Evidence */}
+                    {step === 5 && (
                         <div className="animate-fade-in">
                             <h2 className="text-xl font-bold mb-2">
-                                Step 4: Evidence Required
+                                Step 5: Evidence Required
                             </h2>
 
                             <p className="text-sm text-gray-500 mb-4 leading-relaxed">
-                                Based on your choices,
-                                <span className="font-bold text-blue-600"> {data.tooling}</span> and
-                                <span className="font-bold text-blue-600"> {data.weight}% weight</span>,
-                                the wizard filters the evidence options. Disabled options show where the rule would be inconsistent or disproportionate.
+                                Based on your choices —
+                                <span className="font-bold text-blue-600"> {data.tooling}</span>,
+                                <span className="font-bold text-blue-600"> {data.granularity}</span>, and
+                                <span className="font-bold text-blue-600"> {data.weight}% weight</span> —
+                                the wizard filters evidence options. Disabled options are inconsistent or disproportionate.
                             </p>
 
                             <div className="space-y-3">
@@ -277,17 +635,27 @@
                                     <div key={opt.id}>
                                         <button
                                             onClick={() => {
-                                                setData({ ...data, evidence: opt.id });
+                                                setData({
+                                                    ...data,
+                                                    evidence: opt.label
+                                                });
                                                 nextStep();
                                             }}
                                             disabled={opt.disabled}
-                                            className={`w-full p-4 border-2 rounded-lg text-left text-lg font-medium transition-all ${
+                                            className={`w-full p-4 border-2 rounded-lg text-left transition-all ${
                                                 opt.disabled
                                                     ? 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed'
-                                                    : 'border-gray-200 hover:border-blue-400 text-gray-800 bg-white'
+                                                    : data.evidence === opt.label
+                                                        ? 'border-blue-600 bg-blue-50 text-gray-800'
+                                                        : 'border-gray-200 hover:border-blue-400 text-gray-800 bg-white'
                                             }`}
                                         >
-                                            {opt.label}
+                                            <div className="text-lg font-bold">
+                                                {opt.label}
+                                            </div>
+                                            <div className="text-sm mt-1 opacity-80">
+                                                {opt.desc}
+                                            </div>
                                         </button>
 
                                         {opt.disabled && (
@@ -308,25 +676,36 @@
                         </div>
                     )}
 
-                    {/* Step 5: Success */}
-                    {step === 5 && (
-                        <div className="animate-fade-in text-center py-8">
-                            <div className="text-green-500 text-6xl mb-4">✓</div>
+                    {/* Step 6: Summary */}
+                    {step === 6 && (
+                        <div className="animate-fade-in text-center py-6">
+                            <div className="text-green-500 text-5xl mb-4">✓</div>
 
                             <h2 className="text-2xl font-bold text-gray-800 mb-2">
-                                Component Validated
+                                Component Completed
                             </h2>
 
                             <p className="text-gray-600 mb-6">
-                                This component satisfies the current DAP/WAM constraint rules.
+                                This component satisfies the current DAP/WAM filtering rules.
                             </p>
 
-                            <div className="bg-gray-50 p-4 rounded-lg text-left border border-gray-200 mb-6">
+                            <div className="bg-gray-50 p-4 rounded-lg text-left border border-gray-200 mb-4 space-y-1 text-sm">
+                                <p><strong>Context:</strong> {profile.label}</p>
                                 <p><strong>Component:</strong> {data.component}</p>
                                 <p><strong>Tooling:</strong> {data.tooling}</p>
+                                <p><strong>Granularity:</strong> {data.granularity}</p>
                                 <p><strong>Weight:</strong> {data.weight}%</p>
                                 <p><strong>Evidence:</strong> {data.evidence}</p>
                             </div>
+
+                            {finalWarnings.length > 0 && (
+                                <div className="bg-amber-50 border border-amber-200 text-amber-900 rounded-lg p-3 text-left text-sm mb-5">
+                                    <div className="font-bold mb-1">Advisory note</div>
+                                    {finalWarnings.map((warning, index) => (
+                                        <p key={index}>{warning}</p>
+                                    ))}
+                                </div>
+                            )}
 
                             <button
                                 onClick={resetWizard}
@@ -346,13 +725,13 @@
 
     <style>
         .animate-fade-in {
-            animation: fadeIn 0.3s ease-in-out;
+            animation: fadeIn 0.25s ease-in-out;
         }
 
         @keyframes fadeIn {
             from {
                 opacity: 0;
-                transform: translateY(10px);
+                transform: translateY(8px);
             }
 
             to {
