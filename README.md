@@ -48,6 +48,9 @@ Tijdens de test mag je hardop zeggen wat duidelijk of verwarrend is. Er zijn gee
 
 ### **Nederlands**
 
+**Auteur:** YIN Renlong  
+**Achtergrond:** theologie/religiewetenschappen, computerwetenschappen en digitale geesteswetenschappen.
+
 Dit prototype maakt deel uit van een masterproef over hoe universiteiten regels voor AI-gebruik in opdrachten duidelijker kunnen maken. Jij wordt niet getest. Het doel is om te zien of de interface begrijpelijk is.
 
 Voor biologische wetenschappen helpt het prototype docenten om duidelijkere regels te ontwerpen voor AI-gebruik in opdrachten zoals labverslagen, experimenteel ontwerp, data-analyse of wetenschappelijke discussies.
