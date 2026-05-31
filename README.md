@@ -44,6 +44,76 @@ Tijdens de test mag je hardop zeggen wat duidelijk of verwarrend is. Er zijn gee
 
 
 
+## **Quick guide for Biological Science participants / Korte uitleg voor Biologische Wetenschappen**
+
+### **Nederlands**
+
+Dit prototype maakt deel uit van een masterproef over hoe universiteiten regels voor AI-gebruik in opdrachten duidelijker kunnen maken. Jij wordt niet getest. Het doel is om te zien of de interface begrijpelijk is.
+
+Voor biologische wetenschappen helpt het prototype docenten om duidelijkere regels te ontwerpen voor AI-gebruik in opdrachten zoals labverslagen, experimenteel ontwerp, data-analyse of wetenschappelijke discussies.
+
+Het prototype gebruikt dezelfde onderliggende logica in twee interfaces. In dit project betekent **DAP** **Dynamic Assessment Protocol**: een manier om duidelijkere beoordelingsregels voor AI-gebruik te ontwerpen. **WAM** betekent **Weighted Authorship Matrix**: een tabel die AI-beleid, gevraagd bewijs en beoordelingsgewicht met elkaar verbindt.
+
+De twee interfaces zijn:
+
+* **Matrix Builder:** toont meerdere biologische beoordelingsonderdelen in één tabel. Deze interface geeft overzicht over de hele beoordeling. Als een combinatie problematisch is, bijvoorbeeld hoog gewicht + AI toegestaan + zwak bewijs, toont de tabel een waarschuwing.
+
+* **Wizard:** begeleidt je stap voor stap door één biologisch beoordelingsonderdeel. Sommige bewijsopties kunnen worden uitgeschakeld wanneer een regel inconsistent of disproportioneel zou zijn.
+
+In de modus Biologische Wetenschappen zijn de onderdelen:
+
+* **Achtergrond, Onderzoeksvraag & Hypothese**
+* **Experimenteel Ontwerp, Variabelen & Controles**
+* **Dataverzameling, Labjournaal & Ruwe Observaties**
+* **Data-analyse, Statistiek & Figuren**
+* **Discussie, Beperkingen & Wetenschappelijke Argumentatie**
+
+Belangrijke termen:
+
+* **Component:** het deel van de biologische opdracht dat wordt beoordeeld.
+* **Tooling:** of AI verboden, gedeeltelijk toegestaan of volledig toegestaan is.
+* **Granulariteit:** het detailniveau van de gevraagde verantwoording, bijvoorbeeld per sectie, claim, figuur/tabel of observatie/datapunt.
+* **Bewijs:** wat de student moet aanleveren om eigen biologisch begrip te tonen.
+* **Gewicht:** hoeveel dit onderdeel meetelt voor het cijfer.
+
+In dit prototype betekent zwak bewijs dat de student alleen een AI-gebruikslabel, een eindverslag, een eindgrafiek of een eindantwoord aanlevert. Sterker bewijs kan bestaan uit labjournaalnotities, ruwe data, protocolnotities, analysebestanden, uitleg van controles of statistische keuzes, of een korte mondelinge check.
+
+Tijdens de test mag je hardop zeggen wat duidelijk of verwarrend is. Er zijn geen juiste of foute antwoorden.
+
+### **English**
+
+This prototype is part of a Master's thesis about how universities can make rules for AI use in assignments clearer. You are not being tested. The goal is to see whether the interface is understandable.
+
+For biological science, the prototype helps instructors design clearer AI-use rules for assignments such as lab reports, experimental design tasks, data analysis assignments, or scientific discussion sections.
+
+The prototype uses the same DAP/WAM logic in two interfaces:
+
+* **Matrix Builder:** shows several biology assessment components in one table. It gives an overview of the whole assessment. If a combination is problematic, such as high grading weight + AI allowed + weak evidence, the table shows a warning.
+
+* **Wizard:** guides you through one biology assessment component step by step. Some evidence options may be disabled when the rule would be inconsistent or disproportionate.
+
+In the Biological Science mode, the components are:
+
+* **Background, Research Question & Hypothesis**
+* **Experimental Design, Variables & Controls**
+* **Data Collection, Lab Notebook & Raw Observations**
+* **Data Analysis, Statistics & Figures**
+* **Discussion, Limitations & Scientific Argument**
+
+Important terms:
+
+* **Component:** the part of the biology assignment being assessed.
+* **Tooling:** whether AI is prohibited, partly allowed, or fully allowed.
+* **Granularity:** the level of detail required, for example section-level, claim-level, figure/table-level, or observation/data-point-level.
+* **Evidence:** what the student must provide to show their own biological understanding.
+* **Weight:** how much this component counts in the grade.
+
+In this prototype, weak evidence means that the student only provides an AI-use label, a final lab report, a final graph, or a final answer. Stronger evidence can include lab notebook notes, raw data, protocol notes, analysis files, explanations of controls or statistical choices, or a short oral check.
+
+During the test, please say what feels clear or confusing. There are no right or wrong answers.
+
+
+
 ## 🔗 View the Live Prototype
 **[Access the Interactive WAM Builder Here](https://YIN-Renlong.github.io/DAP-WAM-Prototype/dap-prototype.html)**
 
