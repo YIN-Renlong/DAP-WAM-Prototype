@@ -124,6 +124,90 @@ During the test, please say what feels clear or confusing. There are no right or
 
 ---
 
+
+
+## 🔗 Flowchart
+
+
+
+```mermaid
+flowchart TD
+    A["CS WAM Matrix Builder<br/>Computer Science / Software Design"] 
+    --> B["Inputs for each assessment row"]
+
+    B --> X1["Component<br/>System Architecture<br/>Core Logic<br/>Syntax / Boilerplate<br/>Documentation<br/>Debugging"]
+
+    B --> X2["Tooling<br/>Student Only<br/>Hybrid / Co-Pilot<br/>AI Allowed"]
+
+    B --> X3["Granularity<br/>Assignment-Level<br/>Diagram-Level<br/>File-Level<br/>Function-Level<br/>Line-Level"]
+
+    B --> X4["Evidence Required<br/>AI-use label only<br/>E1: Final output only<br/>E2: Process evidence<br/>E3: Explanation evidence<br/>E4: Live check"]
+
+    B --> X5["Weight<br/>Percentage of total grade"]
+
+    X1 --> R["Compiled assessment-row state"]
+    X2 --> R
+    X3 --> R
+    X4 --> R
+    X5 --> R
+
+    R --> C["Derive logic flags<br/><br/>
+    AI permitted = Hybrid / Co-Pilot OR AI Allowed<br/>
+    Weak evidence = AI-use label only OR E1<br/>
+    Strong evidence = E3 OR E4"]
+
+    C --> D{"Weight >= 25%<br/>AND AI permitted<br/>AND weak evidence?"}
+
+    D -- Yes --> D1["ERROR: Integrity Error<br/>High-value AI-assisted work needs stronger evidence.<br/>Require E2, E3, or E4."]
+    D -- No --> E{"Weight <= 10%<br/>AND strong evidence?"}
+    D1 --> E
+
+    E -- Yes --> E1["WARNING: Proportionality Warning<br/>Low-weight task asks for heavy evidence.<br/>May create unnecessary workload."]
+    E -- No --> F{"Component contains<br/>Syntax or Boilerplate<br/>AND Weight > 20%<br/>AND AI permitted?"}
+    E1 --> F
+
+    F -- Yes --> F1["WARNING: Pedagogy Warning<br/>Too much credit for routine code<br/>when AI is allowed."]
+    F -- No --> G{"Component contains<br/>Architecture<br/>AND Granularity = Line-Level?"}
+    F1 --> G
+
+    G -- Yes --> G1["WARNING: Granularity Warning<br/>Architecture is a macro-level task.<br/>Use Diagram-Level or Assignment-Level instead."]
+    G -- No --> H{"Any row issues?"}
+    G1 --> H
+
+    H -- No --> H1["Row feedback:<br/>Valid alignment"]
+    H -- Yes --> H2["Row feedback:<br/>Show error and/or warning messages"]
+
+    H1 --> I["Aggregate whole matrix"]
+    H2 --> I
+
+    I --> J["Calculate total weight<br/>Count blocking errors<br/>Count advisory warnings"]
+
+    J --> K{"Total weight = 100%?"}
+
+    K -- No --> K1["Status:<br/>Fix total weight<br/>Publishing disabled"]
+    K -- Yes --> L{"Blocking errors > 0?"}
+
+    L -- Yes --> L1["Status:<br/>Blocking issue found<br/>Publishing disabled"]
+    L -- No --> M{"Advisory warnings > 0?"}
+
+    M -- Yes --> M1["Status:<br/>Publishable with warnings<br/>Publishing enabled"]
+    M -- No --> M2["Status:<br/>Matrix valid<br/>Publishing enabled"]
+
+    classDef error fill:#fee2e2,stroke:#dc2626,color:#7f1d1d;
+    classDef warning fill:#fef3c7,stroke:#d97706,color:#78350f;
+    classDef valid fill:#dcfce7,stroke:#16a34a,color:#14532d;
+    classDef status fill:#e0f2fe,stroke:#0284c7,color:#0c4a6e;
+    classDef input fill:#ede9fe,stroke:#8b5cf6,color:#1f2937;
+
+    class X1,X2,X3,X4,X5,R,C input;
+    class D1,L1 error;
+    class E1,F1,G1 warning;
+    class H1,M2 valid;
+    class K1,M1 status;
+```
+
+# 
+
 ## Part 1: Theoretical Architecture & The Re-definition of "Evidence"
 
 In traditional, pre-AI pedagogy, submitting a static file (e.g., 500 lines of manual code) was considered **"Strong Evidence"** of learning. The *process* of manual typing guaranteed the student's cognitive engagement (Process Certainty). 
