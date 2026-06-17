@@ -309,6 +309,8 @@
             const [activePreset, setActivePreset] = useState('tier3');
             const [rows, setRows] = useState(deepClone(profiles.cs.presets.tier3.data));
             const [showStressTests, setShowStressTests] = useState(false);
+            const [showPublishModal, setShowPublishModal] = useState(false);
+            const [toast, setToast] = useState(null);
 
             const profile = profiles[activeDomain];
 
@@ -317,6 +319,8 @@
                 setActivePreset('tier3');
                 setRows(deepClone(profiles[domainKey].presets.tier3.data));
                 setShowStressTests(false);
+                setShowPublishModal(false);
+                setToast(null);
             };
 
             const applyPreset = (presetKey, isStressTest = false) => {
@@ -326,17 +330,56 @@
 
                 setActivePreset(isStressTest ? `stress-${presetKey}` : presetKey);
                 setRows(deepClone(sourceData));
+                setShowPublishModal(false);
+                setToast(null);
             };
 
             const updateRow = (id, field, value) => {
-                setRows(rows.map(row => row.id === id ? { ...row, [field]: value } : row));
+                setRows(currentRows =>
+                    currentRows.map(row =>
+                        row.id === id ? { ...row, [field]: value } : row
+                    )
+                );
             };
 
-            const makeIssue = (severity, title, message) => ({
+            const makeFix = (label, summary, updates, confirmation) => ({
+                label,
+                summary,
+                updates,
+                confirmation
+            });
+
+            const makeIssue = (severity, title, message, fix = null) => ({
                 severity,
                 title,
-                message
+                message,
+                fix
             });
+
+            const applyIssueFix = (rowId, fix) => {
+                if (!fix) return;
+
+                setRows(currentRows =>
+                    currentRows.map(row => {
+                        if (row.id !== rowId) return row;
+
+                        const updates =
+                            typeof fix.updates === 'function'
+                                ? fix.updates(row)
+                                : fix.updates;
+
+                        return {
+                            ...row,
+                            ...updates
+                        };
+                    })
+                );
+
+                setToast({
+                    title: 'Fix applied',
+                    message: fix.confirmation || 'The recommended change was applied.'
+                });
+            };
 
             const getRowIssues = (row) => {
                 let issues = [];
@@ -356,12 +399,47 @@
                     row.evidence.includes('E3') ||
                     row.evidence.includes('E4');
 
+                const isBackground =
+                    compLower.includes('background') ||
+                    compLower.includes('hypothesis');
+
+                const isExperimentalDesign =
+                    compLower.includes('experimental design') ||
+                    compLower.includes('variables') ||
+                    compLower.includes('controls');
+
+                const isDataCollection =
+                    compLower.includes('data collection') ||
+                    compLower.includes('lab notebook') ||
+                    compLower.includes('raw observations');
+
+                const isDataAnalysis =
+                    compLower.includes('data analysis') ||
+                    compLower.includes('statistics') ||
+                    compLower.includes('figures');
+
+                const isDiscussion =
+                    compLower.includes('discussion') ||
+                    compLower.includes('limitations') ||
+                    compLower.includes('scientific argument');
+
                 // Universal rule: high weight + AI + weak evidence
                 if (weight >= 25 && isAIPermitted && isWeakEvidence) {
+                    const recommendedEvidence =
+                        activeDomain === 'bio' && (isExperimentalDesign || isDiscussion)
+                            ? 'E3: Explanation evidence'
+                            : 'E2: Process evidence';
+
                     issues.push(makeIssue(
                         'error',
                         'Integrity Error',
-                        'This task is worth many points and AI is allowed, but the required evidence is weak. Ask for process evidence, explanation evidence, or a live check.'
+                        'This task is worth many points and AI is allowed, but the required evidence is weak. Ask for process evidence, explanation evidence, or a live check.',
+                        makeFix(
+                            'Apply fix',
+                            `Change evidence requirement to ${recommendedEvidence}.`,
+                            { evidence: recommendedEvidence },
+                            `Evidence updated to ${recommendedEvidence}.`
+                        )
                     ));
                 }
 
@@ -370,7 +448,13 @@
                     issues.push(makeIssue(
                         'warning',
                         'Proportionality Warning',
-                        'This task is worth few points, but it asks for heavy evidence such as a long explanation or live check. This may create too much work for a small part of the grade.'
+                        'This task is worth few points, but it asks for heavy evidence such as a long explanation or live check. This may create too much work for a small part of the grade.',
+                        makeFix(
+                            'Apply fix',
+                            'Use lighter evidence for this low-weight component.',
+                            { evidence: 'E1: Final output only' },
+                            'Evidence requirement reduced to E1: Final output only.'
+                        )
                     ));
                 }
 
@@ -383,7 +467,13 @@
                         issues.push(makeIssue(
                             'warning',
                             'Pedagogy Warning',
-                            'This gives many points for syntax or boilerplate while AI is allowed. The grade may reward AI-generated routine code more than the student’s own understanding.'
+                            'This gives many points for syntax or boilerplate while AI is allowed. The grade may reward AI-generated routine code more than the student’s own understanding.',
+                            makeFix(
+                                'Apply fix',
+                                'Set this component to Student Only to preserve assessment value.',
+                                { tooling: 'Student Only' },
+                                'Tooling updated to Student Only.'
+                            )
                         ));
                     }
 
@@ -394,36 +484,18 @@
                         issues.push(makeIssue(
                             'warning',
                             'Granularity Warning',
-                            'System architecture is a big-picture task. Asking for line-by-line disclosure is too detailed. Use diagram-level or assignment-level evidence instead.'
+                            'System architecture is a big-picture task. Asking for line-by-line disclosure is too detailed. Use diagram-level or assignment-level evidence instead.',
+                            makeFix(
+                                'Apply fix',
+                                'Change granularity to Diagram-Level.',
+                                { granularity: 'Diagram-Level' },
+                                'Granularity updated to Diagram-Level.'
+                            )
                         ));
                     }
                 }
 
                 if (activeDomain === 'bio') {
-                    const isBackground =
-                        compLower.includes('background') ||
-                        compLower.includes('hypothesis');
-
-                    const isExperimentalDesign =
-                        compLower.includes('experimental design') ||
-                        compLower.includes('variables') ||
-                        compLower.includes('controls');
-
-                    const isDataCollection =
-                        compLower.includes('data collection') ||
-                        compLower.includes('lab notebook') ||
-                        compLower.includes('raw observations');
-
-                    const isDataAnalysis =
-                        compLower.includes('data analysis') ||
-                        compLower.includes('statistics') ||
-                        compLower.includes('figures');
-
-                    const isDiscussion =
-                        compLower.includes('discussion') ||
-                        compLower.includes('limitations') ||
-                        compLower.includes('scientific argument');
-
                     if (
                         isBackground &&
                         isAIPermitted &&
@@ -433,7 +505,13 @@
                         issues.push(makeIssue(
                             'warning',
                             'Source Quality Warning',
-                            'AI can produce plausible but unreliable biological background text or citations. Ask for an annotated source list, search log, or explanation of why the sources are relevant.'
+                            'AI can produce plausible but unreliable biological background text or citations. Ask for an annotated source list, search log, or explanation of why the sources are relevant.',
+                            makeFix(
+                                'Apply fix',
+                                'Require process evidence such as an annotated source list or search log.',
+                                { evidence: 'E2: Process evidence' },
+                                'Evidence updated to E2: Process evidence.'
+                            )
                         ));
                     }
 
@@ -445,7 +523,13 @@
                         issues.push(makeIssue(
                             'warning',
                             'Experimental Design Warning',
-                            'Experimental design requires justification of variables, controls, and confounders. A final answer alone is weak evidence when AI support is allowed.'
+                            'Experimental design requires justification of variables, controls, and confounders. A final answer alone is weak evidence when AI support is allowed.',
+                            makeFix(
+                                'Apply fix',
+                                'Require explanation evidence for design rationale.',
+                                { evidence: 'E3: Explanation evidence' },
+                                'Evidence updated to E3: Explanation evidence.'
+                            )
                         ));
                     }
 
@@ -457,7 +541,13 @@
                         issues.push(makeIssue(
                             'warning',
                             'Data Integrity Warning',
-                            'Final graphs or final tables alone are not enough for important data work. Ask for raw data, lab notebook notes, spreadsheet formulas, analysis files, or explanation of excluded data.'
+                            'Final graphs or final tables alone are not enough for important data work. Ask for raw data, lab notebook notes, spreadsheet formulas, analysis files, or explanation of excluded data.',
+                            makeFix(
+                                'Apply fix',
+                                'Require process evidence for data work.',
+                                { evidence: 'E2: Process evidence' },
+                                'Evidence updated to E2: Process evidence.'
+                            )
                         ));
                     }
 
@@ -468,7 +558,13 @@
                         issues.push(makeIssue(
                             'warning',
                             'Observation Authenticity Warning',
-                            'For lab observations or raw measurements, AI should not replace the student’s direct observation. If AI is allowed, clarify that it may only assist with formatting, transcription, or reflection.'
+                            'For lab observations or raw measurements, AI should not replace the student’s direct observation. If AI is allowed, clarify that it may only assist with formatting, transcription, or reflection.',
+                            makeFix(
+                                'Apply fix',
+                                'Change tooling to Hybrid / Co-Pilot so AI is framed as support, not replacement.',
+                                { tooling: 'Hybrid / Co-Pilot' },
+                                'Tooling updated to Hybrid / Co-Pilot.'
+                            )
                         ));
                     }
 
@@ -476,10 +572,20 @@
                         (isDataCollection || isDataAnalysis) &&
                         row.granularity === 'Whole-Report Level'
                     ) {
+                        const recommendedGranularity = isDataCollection
+                            ? 'Observation/Data-Point Level'
+                            : 'Figure/Table Level';
+
                         issues.push(makeIssue(
                             'warning',
                             'Granularity Warning',
-                            'Data work needs more specific evidence than whole-report-level disclosure. Use observation-level, protocol-step-level, or figure/table-level evidence.'
+                            'Data work needs more specific evidence than whole-report-level disclosure. Use observation-level, protocol-step-level, or figure/table-level evidence.',
+                            makeFix(
+                                'Apply fix',
+                                `Change granularity to ${recommendedGranularity}.`,
+                                { granularity: recommendedGranularity },
+                                `Granularity updated to ${recommendedGranularity}.`
+                            )
                         ));
                     }
 
@@ -487,10 +593,22 @@
                         (isBackground || isExperimentalDesign || isDiscussion) &&
                         row.granularity === 'Observation/Data-Point Level'
                     ) {
+                        let recommendedGranularity = 'Section-Level';
+
+                        if (isBackground) recommendedGranularity = 'Source-Level';
+                        if (isExperimentalDesign) recommendedGranularity = 'Protocol-Step Level';
+                        if (isDiscussion) recommendedGranularity = 'Claim-Level';
+
                         issues.push(makeIssue(
                             'warning',
                             'Granularity Warning',
-                            'This is a big-picture reasoning task. Data-point-level disclosure is too microscopic. Use source-level, protocol-step-level, section-level, or claim-level evidence instead.'
+                            'This is a big-picture reasoning task. Data-point-level disclosure is too microscopic. Use source-level, protocol-step-level, section-level, or claim-level evidence instead.',
+                            makeFix(
+                                'Apply fix',
+                                `Change granularity to ${recommendedGranularity}.`,
+                                { granularity: recommendedGranularity },
+                                `Granularity updated to ${recommendedGranularity}.`
+                            )
                         ));
                     }
                 }
@@ -505,24 +623,64 @@
             const canPublish = totalWeight === 100 && blockingIssueCount === 0;
 
             const getStatusText = () => {
-                if (totalWeight !== 100) return 'Fix total weight';
-                if (blockingIssueCount > 0) return 'Blocking issue found';
-                if (advisoryIssueCount > 0) return 'Publishable with warnings';
-                return 'Matrix valid';
+                if (totalWeight !== 100) return 'Fix Total Weight';
+                if (blockingIssueCount > 0) return 'Resolve Blocking Issues';
+                if (advisoryIssueCount > 0) return 'Publish with Warnings';
+                return 'Publish Matrix';
             };
 
             const getStatusClass = () => {
                 if (totalWeight !== 100 || blockingIssueCount > 0) {
                     return 'bg-gray-600 cursor-not-allowed opacity-60';
                 }
+
                 if (advisoryIssueCount > 0) {
-                    return 'bg-amber-600 hover:bg-amber-500';
+                    return 'bg-amber-600 hover:bg-amber-500 shadow-lg shadow-amber-900/20';
                 }
-                return 'bg-blue-600 hover:bg-blue-500';
+
+                return 'bg-blue-600 hover:bg-blue-500 shadow-lg shadow-blue-900/20';
+            };
+
+            const handlePublish = () => {
+                if (!canPublish) return;
+                setShowPublishModal(true);
             };
 
             return (
-                <div className="w-full max-w-[1900px] mx-auto bg-white p-5 rounded-lg shadow-xl">
+                <div className="w-full max-w-[1900px] mx-auto bg-white p-5 rounded-lg shadow-xl relative">
+
+                    {/* Toast */}
+                    {toast && (
+                        <div
+                            className="fixed top-5 right-5 z-50 w-[340px] rounded-xl border border-green-200 bg-white shadow-2xl overflow-hidden"
+                            role="status"
+                            aria-live="polite"
+                        >
+                            <div className="flex items-start gap-3 p-4">
+                                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-green-100 text-green-700 font-bold">
+                                    ✓
+                                </div>
+
+                                <div className="flex-1">
+                                    <div className="font-bold text-gray-900 text-sm">
+                                        {toast.title}
+                                    </div>
+                                    <div className="text-sm text-gray-600 mt-0.5">
+                                        {toast.message}
+                                    </div>
+                                </div>
+
+                                <button
+                                    onClick={() => setToast(null)}
+                                    className="text-gray-400 hover:text-gray-700 text-lg leading-none"
+                                    aria-label="Close notification"
+                                >
+                                    ×
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Header */}
                     <div className="border-b pb-4 mb-5">
                         <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
@@ -561,6 +719,7 @@
                                     <div className="font-bold text-blue-700 text-sm wrap-text">
                                         {profiles[key].label}
                                     </div>
+
                                     <div className="text-xs text-gray-600 mt-1 wrap-text">
                                         {profiles[key].desc}
                                     </div>
@@ -603,6 +762,7 @@
                                     <div className="font-bold text-blue-700 text-sm wrap-text">
                                         {profile.presets[key].name}
                                     </div>
+
                                     <div className="text-xs text-gray-600 mt-1 leading-tight wrap-text">
                                         {profile.presets[key].desc}
                                     </div>
@@ -611,7 +771,7 @@
                         </div>
                     </div>
 
-                    {/* Matrix */}
+                    {/* Matrix Title */}
                     <div className="mb-3 flex flex-col md:flex-row md:justify-between md:items-end gap-2">
                         <div>
                             <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wider">
@@ -623,12 +783,14 @@
                             <span className="text-xs text-blue-600 font-semibold bg-blue-100 px-2 py-1 rounded">
                                 Logic Engine Active
                             </span>
+
                             <span className="text-xs text-gray-700 font-semibold bg-gray-100 px-2 py-1 rounded">
                                 {profile.shortLabel}
                             </span>
                         </div>
                     </div>
 
+                    {/* Matrix Table */}
                     <div className="border border-gray-200 rounded-lg shadow-sm overflow-hidden mb-5">
                         <table className="matrix-table text-left border-collapse">
                             <colgroup>
@@ -736,24 +898,57 @@
                                                     </div>
                                                 ) : (
                                                     <div className="space-y-2">
-                                                        {issues.map((issue, i) => (
-                                                            <div
-                                                                key={i}
-                                                                className={`p-2 rounded-md border text-sm leading-snug wrap-text ${
-                                                                    issue.severity === 'error'
-                                                                        ? 'bg-red-50 border-red-200 text-red-800'
-                                                                        : 'bg-amber-50 border-amber-200 text-amber-900'
-                                                                }`}
-                                                            >
-                                                                <div className="font-bold mb-1">
-                                                                    {issue.severity === 'error' ? '⛔ ' : '⚠️ '}
-                                                                    {issue.title}
+                                                        {issues.map((issue, i) => {
+                                                            const isError = issue.severity === 'error';
+
+                                                            return (
+                                                                <div
+                                                                    key={i}
+                                                                    className={`p-3 rounded-lg border text-sm leading-snug wrap-text ${
+                                                                        isError
+                                                                            ? 'bg-red-50 border-red-200 text-red-800'
+                                                                            : 'bg-amber-50 border-amber-200 text-amber-900'
+                                                                    }`}
+                                                                >
+                                                                    <div className="font-bold mb-1 flex items-center gap-1">
+                                                                        <span>{isError ? '⛔' : '⚠️'}</span>
+                                                                        <span>{issue.title}</span>
+                                                                    </div>
+
+                                                                    <div>
+                                                                        {issue.message}
+                                                                    </div>
+
+                                                                    {issue.fix && (
+                                                                        <div className={`mt-3 rounded-md border px-3 py-2 ${
+                                                                            isError
+                                                                                ? 'bg-white border-red-100'
+                                                                                : 'bg-white border-amber-100'
+                                                                        }`}>
+                                                                            <div className="text-[11px] font-bold uppercase tracking-wider text-gray-500 mb-1">
+                                                                                Recommended fix
+                                                                            </div>
+
+                                                                            <div className="text-xs text-gray-700 mb-2">
+                                                                                {issue.fix.summary}
+                                                                            </div>
+
+                                                                            <button
+                                                                                onClick={() => applyIssueFix(row.id, issue.fix)}
+                                                                                className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-bold text-white transition shadow-sm ${
+                                                                                    isError
+                                                                                        ? 'bg-red-700 hover:bg-red-800'
+                                                                                        : 'bg-amber-700 hover:bg-amber-800'
+                                                                                }`}
+                                                                            >
+                                                                                <span>{issue.fix.label}</span>
+                                                                                <span>→</span>
+                                                                            </button>
+                                                                        </div>
+                                                                    )}
                                                                 </div>
-                                                                <div>
-                                                                    {issue.message}
-                                                                </div>
-                                                            </div>
-                                                        ))}
+                                                            );
+                                                        })}
                                                     </div>
                                                 )}
                                             </td>
@@ -764,7 +959,7 @@
                         </table>
                     </div>
 
-                    {/* Total Weight */}
+                    {/* Total Weight / Publish */}
                     <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-3 bg-gray-800 p-4 rounded-lg shadow-inner mb-5">
                         <div>
                             <div className="text-lg font-bold text-white">
@@ -782,6 +977,7 @@
                         </div>
 
                         <button
+                            onClick={handlePublish}
                             disabled={!canPublish}
                             className={`px-6 py-2 rounded-md text-white font-bold transition-all ${getStatusClass()}`}
                         >
@@ -796,6 +992,7 @@
                                 <h2 className="text-sm font-bold text-red-800 uppercase tracking-wider">
                                     Optional: logic stress tests
                                 </h2>
+
                                 <p className="text-xs text-red-700 mt-1">
                                     These presets intentionally inject problematic configurations.
                                 </p>
@@ -834,6 +1031,120 @@
                             </div>
                         )}
                     </div>
+
+                    {/* Publish Confirmation Modal */}
+                    {showPublishModal && (
+                        <div
+                            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm"
+                            role="dialog"
+                            aria-modal="true"
+                            onClick={() => setShowPublishModal(false)}
+                        >
+                            <div
+                                className="w-full max-w-xl overflow-hidden rounded-2xl bg-white shadow-2xl border border-slate-200"
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-5 text-white">
+                                    <div className="flex items-center gap-4">
+                                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white/20 text-2xl font-bold">
+                                            ✓
+                                        </div>
+
+                                        <div>
+                                            <h3 className="text-xl font-extrabold tracking-tight">
+                                                Component Completed
+                                            </h3>
+
+                                            <p className="text-sm text-blue-100 mt-0.5">
+                                                Published to Syteeke prototype workspace
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="p-6">
+                                    <p className="text-gray-800 leading-relaxed">
+                                        <span className="font-bold">
+                                            This component satisfies the current DAP/WAM filtering rules.
+                                        </span>
+                                        {' '}
+                                        The matrix is ready for use under the selected assessment context.
+                                    </p>
+
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-5">
+                                        <div className="rounded-lg border border-green-200 bg-green-50 p-3">
+                                            <div className="text-xs font-bold uppercase tracking-wider text-green-700">
+                                                Weight
+                                            </div>
+
+                                            <div className="text-lg font-extrabold text-green-800 mt-1">
+                                                {totalWeight}%
+                                            </div>
+                                        </div>
+
+                                        <div className="rounded-lg border border-red-200 bg-red-50 p-3">
+                                            <div className="text-xs font-bold uppercase tracking-wider text-red-700">
+                                                Blocking Errors
+                                            </div>
+
+                                            <div className="text-lg font-extrabold text-red-800 mt-1">
+                                                {blockingIssueCount}
+                                            </div>
+                                        </div>
+
+                                        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
+                                            <div className="text-xs font-bold uppercase tracking-wider text-amber-700">
+                                                Advisory Warnings
+                                            </div>
+
+                                            <div className="text-lg font-extrabold text-amber-800 mt-1">
+                                                {advisoryIssueCount}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {advisoryIssueCount > 0 ? (
+                                        <div className="mt-5 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+                                            <div className="font-bold mb-1">
+                                                Published with advisory warnings
+                                            </div>
+                                            These warnings are non-blocking. The component can be published, but the instructor may still review the highlighted recommendations.
+                                        </div>
+                                    ) : (
+                                        <div className="mt-5 rounded-lg border border-green-200 bg-green-50 p-4 text-sm text-green-800">
+                                            <div className="font-bold mb-1">
+                                                Clean validation
+                                            </div>
+                                            No blocking errors or advisory warnings were detected.
+                                        </div>
+                                    )}
+
+                                    <div className="mt-5 rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900">
+                                        <div className="font-bold mb-1">
+                                            Prototype note
+                                        </div>
+                                        This confirmation represents the Syteeke publishing step in the mockup UI.
+                                    </div>
+
+                                    <div className="mt-6 flex flex-col sm:flex-row sm:justify-end gap-2">
+                                        <button
+                                            onClick={() => setShowPublishModal(false)}
+                                            className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 font-bold hover:bg-gray-50 transition"
+                                        >
+                                            Review Matrix
+                                        </button>
+
+                                        <button
+                                            onClick={() => setShowPublishModal(false)}
+                                            className="px-5 py-2 rounded-md bg-blue-600 text-white font-bold hover:bg-blue-500 transition shadow-lg shadow-blue-900/20"
+                                        >
+                                            Done
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             );
         }
