@@ -1,0 +1,1630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>DAP/WAM Risk Topography Heatmap</title>
+
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.24.7/babel.min.js"></script>
+
+  <style>
+    :root {
+      --panel: rgba(255, 255, 255, 0.95);
+      --panel-2: rgba(248, 250, 252, 0.96);
+      --text: #0f172a;
+      --muted: #64748b;
+      --shadow: 0 25px 70px rgba(2, 6, 23, 0.25);
+      --radius: 22px;
+      --font: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: var(--font);
+      color: var(--text);
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at top left, rgba(59, 130, 246, 0.32), transparent 34%),
+        radial-gradient(circle at top right, rgba(239, 68, 68, 0.25), transparent 34%),
+        radial-gradient(circle at bottom, rgba(22, 163, 74, 0.23), transparent 40%),
+        linear-gradient(135deg, #020617, #111827 45%, #0f172a);
+      padding: 28px;
+    }
+
+    button,
+    select {
+      font-family: inherit;
+    }
+
+    .app {
+      width: min(1500px, 100%);
+      margin: 0 auto;
+    }
+
+    .hero {
+      background: linear-gradient(135deg, rgba(255,255,255,0.98), rgba(241,245,249,0.96));
+      border: 1px solid rgba(255, 255, 255, 0.65);
+      box-shadow: var(--shadow);
+      border-radius: var(--radius);
+      padding: 28px;
+      margin-bottom: 18px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-weight: 800;
+      color: #1d4ed8;
+      background: #dbeafe;
+      border: 1px solid #bfdbfe;
+      padding: 7px 10px;
+      border-radius: 999px;
+      margin-bottom: 14px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(30px, 4vw, 54px);
+      letter-spacing: -0.055em;
+      line-height: 0.98;
+      color: #020617;
+    }
+
+    .subtitle {
+      max-width: 980px;
+      margin: 16px 0 0;
+      font-size: 16px;
+      line-height: 1.65;
+      color: #475569;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 18px;
+      align-items: stretch;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid rgba(255,255,255,0.55);
+      box-shadow: 0 18px 45px rgba(2, 6, 23, 0.18);
+      border-radius: var(--radius);
+      padding: 18px;
+      backdrop-filter: blur(14px);
+    }
+
+    .sidebar {
+      height: 100%;
+    }
+
+    .panel h2 {
+      margin: 0 0 12px;
+      font-size: 15px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #334155;
+    }
+
+    .control-group {
+      margin-bottom: 16px;
+    }
+
+    .control-group label {
+      display: block;
+      font-size: 12px;
+      font-weight: 800;
+      color: #475569;
+      margin-bottom: 7px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    select {
+      width: 100%;
+      appearance: none;
+      background: #fff;
+      border: 1px solid #cbd5e1;
+      color: #0f172a;
+      border-radius: 12px;
+      padding: 11px 12px;
+      font-size: 14px;
+      font-weight: 650;
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+
+    select:focus {
+      border-color: #2563eb;
+      box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.13);
+    }
+
+    .scenario-grid {
+      display: grid;
+      gap: 8px;
+    }
+
+    .scenario-button {
+      border: 1px solid #cbd5e1;
+      background: #ffffff;
+      color: #0f172a;
+      border-radius: 13px;
+      padding: 10px 11px;
+      cursor: pointer;
+      text-align: left;
+      transition: transform 0.12s, border-color 0.12s, box-shadow 0.12s;
+    }
+
+    .scenario-button:hover {
+      transform: translateY(-1px);
+      border-color: #3b82f6;
+      box-shadow: 0 8px 22px rgba(37, 99, 235, 0.12);
+    }
+
+    .scenario-title {
+      font-weight: 850;
+      font-size: 13px;
+    }
+
+    .scenario-desc {
+      font-size: 12px;
+      color: #64748b;
+      margin-top: 3px;
+      line-height: 1.35;
+    }
+
+    .clear-pin {
+      border: 1px solid #cbd5e1;
+      background: #fff;
+      color: #334155;
+      font-weight: 850;
+      padding: 9px 11px;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: border-color 0.12s, background 0.12s;
+      width: 100%;
+      margin-top: 10px;
+    }
+
+    .clear-pin:hover {
+      border-color: #2563eb;
+      background: #eff6ff;
+    }
+
+    .rule-key {
+      margin-top: 18px;
+      padding: 13px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+    }
+
+    .rule-key h3 {
+      margin: 0 0 9px;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #475569;
+    }
+
+    .rule-row {
+      display: grid;
+      grid-template-columns: 38px 1fr;
+      gap: 8px;
+      align-items: start;
+      padding: 7px 0;
+      border-top: 1px solid #e2e8f0;
+      font-size: 12px;
+      line-height: 1.35;
+      color: #475569;
+    }
+
+    .rule-row:first-of-type {
+      border-top: 0;
+      padding-top: 0;
+    }
+
+    .rule-code {
+      font-weight: 950;
+      border-radius: 999px;
+      color: white;
+      padding: 3px 6px;
+      text-align: center;
+      font-size: 11px;
+    }
+
+    .r-red {
+      background: #dc2626;
+    }
+
+    .r-amber {
+      background: #d97706;
+    }
+
+    .small-note {
+      margin-top: 12px;
+      color: #64748b;
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .map-panel {
+      padding: 18px;
+    }
+
+    .map-header {
+      margin-bottom: 14px;
+    }
+
+    .map-header h2 {
+      margin: 0;
+      font-size: 18px;
+      letter-spacing: -0.02em;
+      text-transform: none;
+      color: #0f172a;
+    }
+
+    .map-header p {
+      margin: 6px 0 0;
+      color: #64748b;
+      line-height: 1.5;
+      font-size: 13px;
+      max-width: 900px;
+    }
+
+    .heatmap-shell {
+      display: grid;
+      grid-template-columns: 168px minmax(620px, 1fr);
+      gap: 12px;
+      align-items: stretch;
+      overflow-x: auto;
+      padding-bottom: 4px;
+    }
+
+    .y-axis {
+      height: 380px;
+      display: grid;
+      grid-template-rows: repeat(5, 1fr);
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid #cbd5e1;
+      background: #f8fafc;
+      min-width: 168px;
+    }
+
+    .y-label {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 10px 12px;
+      border-bottom: 1px solid #e2e8f0;
+      background: linear-gradient(180deg, #ffffff, #f8fafc);
+    }
+
+    .y-label:last-child {
+      border-bottom: 0;
+    }
+
+    .y-short {
+      font-size: 13px;
+      font-weight: 900;
+      color: #0f172a;
+    }
+
+    .y-full {
+      margin-top: 3px;
+      font-size: 11px;
+      color: #64748b;
+      line-height: 1.25;
+    }
+
+    .map-column {
+      min-width: 620px;
+    }
+
+    .map-wrap {
+      position: relative;
+      height: 380px;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid #cbd5e1;
+      background: #e2e8f0;
+      cursor: crosshair;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.25);
+    }
+
+    .map-grid {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      grid-template-columns: repeat(101, 1fr);
+      grid-template-rows: repeat(5, 1fr);
+    }
+
+    .cell {
+      position: relative;
+      min-width: 0;
+      min-height: 0;
+      transition:
+        filter 0.08s,
+        opacity 0.08s,
+        outline 0.08s,
+        box-shadow 0.08s;
+    }
+
+    .cell:hover {
+      filter: brightness(1.22) saturate(1.28);
+      outline: 1px solid rgba(255,255,255,0.9);
+      z-index: 2;
+    }
+
+    /*
+      Important visual choice:
+      Non-selected zones are faded, not hidden.
+      This keeps the full topography visible while still making the current state obvious.
+    */
+    .cell.faded {
+      opacity: 0.58;
+      filter: saturate(0.72) brightness(1.04);
+    }
+
+    .cell.focused {
+      opacity: 1;
+      filter: saturate(1.18) brightness(1.04);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.13);
+    }
+
+    .boundary-line {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 0;
+      border-left: 2px dashed rgba(15, 23, 42, 0.45);
+      z-index: 3;
+      pointer-events: none;
+    }
+
+    .boundary-label {
+      position: absolute;
+      transform: translateX(-50%);
+      z-index: 4;
+      pointer-events: none;
+      font-size: 10px;
+      font-weight: 900;
+      color: #0f172a;
+      background: rgba(255,255,255,0.88);
+      border: 1px solid rgba(148,163,184,0.75);
+      padding: 4px 7px;
+      border-radius: 999px;
+      white-space: nowrap;
+      box-shadow: 0 8px 18px rgba(2, 6, 23, 0.08);
+    }
+
+    .zone-tag {
+      position: absolute;
+      z-index: 4;
+      pointer-events: none;
+      font-size: 12px;
+      line-height: 1.25;
+      font-weight: 900;
+      max-width: 230px;
+      padding: 8px 10px;
+      border-radius: 13px;
+      border: 1px solid;
+      box-shadow: 0 10px 24px rgba(2,6,23,0.18);
+      backdrop-filter: blur(8px);
+    }
+
+    .zone-red {
+      color: #991b1b;
+      border-color: rgba(254, 202, 202, 0.9);
+      background: rgba(254, 242, 242, 0.9);
+    }
+
+    .zone-amber {
+      color: #92400e;
+      border-color: rgba(253, 230, 138, 0.95);
+      background: rgba(255, 251, 235, 0.9);
+    }
+
+    .zone-green {
+      color: #065f46;
+      border-color: rgba(187, 247, 208, 0.9);
+      background: rgba(236, 253, 245, 0.84);
+    }
+
+    .hatch-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      pointer-events: none;
+      background-image:
+        repeating-linear-gradient(
+          135deg,
+          rgba(15, 23, 42, 0.16) 0,
+          rgba(15, 23, 42, 0.16) 1px,
+          transparent 1px,
+          transparent 10px
+        );
+      mix-blend-mode: multiply;
+    }
+
+    .crosshair-v,
+    .crosshair-h {
+      position: absolute;
+      pointer-events: none;
+      z-index: 5;
+      background: rgba(15, 23, 42, 0.62);
+    }
+
+    .crosshair-v {
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      transform: translateX(-1px);
+    }
+
+    .crosshair-h {
+      left: 0;
+      right: 0;
+      height: 2px;
+      transform: translateY(-1px);
+    }
+
+    .probe-marker {
+      position: absolute;
+      width: 30px;
+      height: 30px;
+      border-radius: 999px;
+      border: 3px solid #fff;
+      transform: translate(-50%, -50%);
+      z-index: 7;
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-weight: 950;
+      font-size: 16px;
+      line-height: 1;
+    }
+
+    .probe-safe {
+      background: #059669;
+      box-shadow:
+        0 0 0 9px rgba(16, 185, 129, 0.24),
+        0 10px 26px rgba(2, 6, 23, 0.45);
+    }
+
+    .probe-warning {
+      background: #d97706;
+      box-shadow:
+        0 0 0 9px rgba(245, 158, 11, 0.28),
+        0 10px 26px rgba(2, 6, 23, 0.45);
+    }
+
+    .probe-error {
+      background: #dc2626;
+      box-shadow:
+        0 0 0 9px rgba(239, 68, 68, 0.28),
+        0 10px 26px rgba(2, 6, 23, 0.45);
+    }
+
+    .pin-label {
+      position: absolute;
+      transform: translate(-50%, calc(-100% - 20px));
+      z-index: 8;
+      pointer-events: none;
+      border-radius: 999px;
+      padding: 7px 10px;
+      font-size: 11px;
+      font-weight: 950;
+      white-space: nowrap;
+      box-shadow: 0 8px 20px rgba(2,6,23,0.30);
+      border: 1px solid;
+    }
+
+    .label-safe {
+      background: rgba(236, 253, 245, 0.96);
+      color: #065f46;
+      border-color: #6ee7b7;
+    }
+
+    .label-warning {
+      background: rgba(255, 251, 235, 0.97);
+      color: #92400e;
+      border-color: #fcd34d;
+    }
+
+    .label-error {
+      background: rgba(254, 242, 242, 0.97);
+      color: #991b1b;
+      border-color: #fca5a5;
+    }
+
+    .x-axis {
+      position: relative;
+      height: 38px;
+      margin-top: 7px;
+      border-top: 1px solid #cbd5e1;
+    }
+
+    .x-tick {
+      position: absolute;
+      top: 0;
+      transform: translateX(-50%);
+      color: #64748b;
+      font-size: 11px;
+      font-weight: 800;
+      padding-top: 8px;
+      white-space: nowrap;
+    }
+
+    .x-title {
+      text-align: center;
+      color: #475569;
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-top: 2px;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 9px;
+      margin-top: 12px;
+      justify-content: center;
+    }
+
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 12px;
+      color: #475569;
+      font-weight: 750;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      padding: 7px 9px;
+      border-radius: 999px;
+    }
+
+    .swatch {
+      width: 14px;
+      height: 14px;
+      border-radius: 4px;
+      border: 1px solid rgba(15,23,42,0.16);
+    }
+
+    .detail-panel {
+      margin-top: 18px;
+      display: grid;
+      grid-template-columns: 1.05fr 1fr;
+      gap: 14px;
+    }
+
+    .probe-card {
+      background: var(--panel-2);
+      border: 1px solid #e2e8f0;
+      border-radius: 18px;
+      padding: 16px;
+    }
+
+    .probe-card h3 {
+      margin: 0 0 10px;
+      font-size: 15px;
+      color: #0f172a;
+      letter-spacing: -0.01em;
+    }
+
+    .probe-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .kv {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 10px;
+    }
+
+    .kv-wide {
+      grid-column: 1 / -1;
+    }
+
+    .kv-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-weight: 900;
+      color: #64748b;
+      margin-bottom: 4px;
+    }
+
+    .kv-value {
+      font-size: 13px;
+      font-weight: 850;
+      color: #0f172a;
+      line-height: 1.25;
+    }
+
+    .status {
+      border-radius: 15px;
+      padding: 12px;
+      border: 1px solid;
+      margin-bottom: 12px;
+    }
+
+    .status-title {
+      font-size: 14px;
+      font-weight: 950;
+      margin-bottom: 4px;
+    }
+
+    .status-text {
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .status-safe {
+      background: #ecfdf5;
+      border-color: #bbf7d0;
+      color: #065f46;
+    }
+
+    .status-warning {
+      background: #fffbeb;
+      border-color: #fde68a;
+      color: #92400e;
+    }
+
+    .status-error {
+      background: #fef2f2;
+      border-color: #fecaca;
+      color: #991b1b;
+    }
+
+    .issue-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .issue {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 14px;
+      padding: 11px;
+    }
+
+    .issue-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 5px;
+    }
+
+    .issue-code {
+      font-size: 11px;
+      font-weight: 950;
+      border-radius: 999px;
+      padding: 4px 7px;
+      color: #fff;
+    }
+
+    .code-error {
+      background: #dc2626;
+    }
+
+    .code-warning {
+      background: #d97706;
+    }
+
+    .issue-title {
+      font-size: 13px;
+      font-weight: 900;
+      color: #0f172a;
+    }
+
+    .issue-message {
+      font-size: 12px;
+      color: #475569;
+      line-height: 1.45;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .summary-box {
+      border-radius: 14px;
+      padding: 12px;
+      color: #fff;
+      min-height: 78px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .summary-number {
+      font-size: 26px;
+      font-weight: 950;
+      letter-spacing: -0.05em;
+    }
+
+    .summary-label {
+      font-size: 11px;
+      font-weight: 850;
+      opacity: 0.9;
+      line-height: 1.25;
+    }
+
+    .summary-safe {
+      background: linear-gradient(135deg, #16a34a, #047857);
+    }
+
+    .summary-warning {
+      background: linear-gradient(135deg, #f59e0b, #b45309);
+    }
+
+    .summary-error {
+      background: linear-gradient(135deg, #ef4444, #991b1b);
+    }
+
+    @media (max-width: 1050px) {
+      body {
+        padding: 16px;
+      }
+
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .detail-panel {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        height: auto;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useMemo, useState } = React;
+
+    const CELL_COUNT = 101;
+
+    function xCellCenter(weight) {
+      return ((weight + 0.5) / CELL_COUNT) * 100;
+    }
+
+    function xBeforeCell(weight) {
+      return (weight / CELL_COUNT) * 100;
+    }
+
+    function xAfterCell(weight) {
+      return ((weight + 1) / CELL_COUNT) * 100;
+    }
+
+    const evidenceLevelsBottomToTop = [
+      {
+        id: "AI_LABEL",
+        short: "AI label only",
+        label: "AI-use label only (weak evidence)",
+        rank: 0,
+        weak: true,
+        strong: false
+      },
+      {
+        id: "E1",
+        short: "E1 Output",
+        label: "E1: Final output only",
+        rank: 1,
+        weak: true,
+        strong: false
+      },
+      {
+        id: "E2",
+        short: "E2 Process",
+        label: "E2: Process evidence",
+        rank: 2,
+        weak: false,
+        strong: false
+      },
+      {
+        id: "E3",
+        short: "E3 Explanation",
+        label: "E3: Explanation evidence",
+        rank: 3,
+        weak: false,
+        strong: true
+      },
+      {
+        id: "E4",
+        short: "E4 Live check",
+        label: "E4: Live check",
+        rank: 4,
+        weak: false,
+        strong: true
+      }
+    ];
+
+    const evidenceLevelsTopToBottom = [...evidenceLevelsBottomToTop].reverse();
+
+    const evidenceById = evidenceLevelsBottomToTop.reduce((acc, ev) => {
+      acc[ev.id] = ev;
+      return acc;
+    }, {});
+
+    const toolingOptions = [
+      "Student Only",
+      "Hybrid / Co-Pilot",
+      "AI Allowed"
+    ];
+
+    const componentOptions = [
+      "System Architecture",
+      "Core Logic",
+      "Syntax/Boilerplate",
+      "Documentation",
+      "Debugging"
+    ];
+
+    const granularityOptions = [
+      "Assignment-Level",
+      "Diagram-Level",
+      "File-Level",
+      "Function-Level",
+      "Line-Level"
+    ];
+
+    const ruleDefinitions = {
+      R1: {
+        code: "R1",
+        severity: "error",
+        title: "Integrity / Free-Rider risk",
+        message:
+          "High-weight work allows AI, but only weak evidence is required."
+      },
+      R2: {
+        code: "R2",
+        severity: "warning",
+        title: "Proportionality / Surveillance Trap risk",
+        message:
+          "Low-weight work demands heavy evidence."
+      },
+      R3: {
+        code: "R3",
+        severity: "warning",
+        title: "Labor Misalignment risk",
+        message:
+          "Syntax/boilerplate is heavily weighted while AI is permitted."
+      },
+      R4: {
+        code: "R4",
+        severity: "warning",
+        title: "Granularity Mismatch risk",
+        message:
+          "System architecture is paired with line-level disclosure."
+      }
+    };
+
+    function isAIPermitted(tooling) {
+      return tooling === "Hybrid / Co-Pilot" || tooling === "AI Allowed";
+    }
+
+    function evaluateCell(weight, evidence, config) {
+      const issues = [];
+      const compLower = config.component.toLowerCase();
+      const aiPermitted = isAIPermitted(config.tooling);
+
+      if (weight >= 25 && aiPermitted && evidence.weak) {
+        issues.push(ruleDefinitions.R1);
+      }
+
+      if (weight <= 10 && evidence.strong) {
+        issues.push(ruleDefinitions.R2);
+      }
+
+      if (
+        (compLower.includes("syntax") || compLower.includes("boilerplate")) &&
+        weight > 20 &&
+        aiPermitted
+      ) {
+        issues.push(ruleDefinitions.R3);
+      }
+
+      if (
+        compLower.includes("architecture") &&
+        config.granularity === "Line-Level"
+      ) {
+        issues.push(ruleDefinitions.R4);
+      }
+
+      const hasError = issues.some(issue => issue.severity === "error");
+      const hasWarning = issues.some(issue => issue.severity === "warning");
+
+      return {
+        issues,
+        severity: hasError ? "error" : hasWarning ? "warning" : "safe"
+      };
+    }
+
+    function hsl(h, s, l) {
+      return `hsl(${h}, ${s}%, ${l}%)`;
+    }
+
+    function colorForCell(weight, evidence, result) {
+      const codes = result.issues.map(issue => issue.code);
+
+      if (codes.includes("R1")) {
+        const normalized = Math.max(0, Math.min(1, (weight - 25) / 75));
+        const weakPenalty = evidence.id === "AI_LABEL" ? 7 : 0;
+        const lightness = 53 - Math.round(normalized * 12) - weakPenalty;
+        return hsl(0, 78, Math.max(32, lightness));
+      }
+
+      if (codes.includes("R2")) {
+        const normalized = Math.max(0, Math.min(1, (10 - weight) / 10));
+        const lightness = 62 - Math.round(normalized * 8);
+        return hsl(36, 94, lightness);
+      }
+
+      if (codes.includes("R3")) {
+        const normalized = Math.max(0, Math.min(1, (weight - 21) / 79));
+        const lightness = 59 - Math.round(normalized * 7);
+        return hsl(28, 92, lightness);
+      }
+
+      if (codes.includes("R4")) {
+        return hsl(22, 88, 62);
+      }
+
+      const evidenceBoost = evidence.rank * 2;
+      const highWeightConfidence = weight >= 25 && evidence.rank >= 2 ? -3 : 0;
+      const lightness = 43 + evidenceBoost + highWeightConfidence;
+      return hsl(146, 50, lightness);
+    }
+
+    function getStatusMeta(result) {
+      if (result.severity === "error") {
+        return {
+          className: "status status-error",
+          title: "Critical / invalid configuration",
+          text:
+            "This point is in a red risk zone and should be corrected before publication.",
+          icon: "✕",
+          markerClass: "probe-marker probe-error",
+          labelClass: "pin-label label-error",
+          shortLabel: "ERROR"
+        };
+      }
+
+      if (result.severity === "warning") {
+        return {
+          className: "status status-warning",
+          title: "Advisory warning / needs review",
+          text:
+            "This point is not necessarily forbidden, but it creates a proportionality, pedagogy, or granularity concern.",
+          icon: "!",
+          markerClass: "probe-marker probe-warning",
+          labelClass: "pin-label label-warning",
+          shortLabel: "WARNING"
+        };
+      }
+
+      return {
+        className: "status status-safe",
+        title: "Green corridor / valid alignment",
+        text:
+          "No blocking rule is triggered for this point.",
+        icon: "✓",
+        markerClass: "probe-marker probe-safe",
+        labelClass: "pin-label label-safe",
+        shortLabel: "VALID"
+      };
+    }
+
+    function computeSummary(config) {
+      let safe = 0;
+      let warning = 0;
+      let error = 0;
+      let total = 0;
+
+      for (let w = 0; w <= 100; w += 1) {
+        evidenceLevelsTopToBottom.forEach(ev => {
+          const result = evaluateCell(w, ev, config);
+          total += 1;
+
+          if (result.severity === "error") {
+            error += 1;
+          } else if (result.severity === "warning") {
+            warning += 1;
+          } else {
+            safe += 1;
+          }
+        });
+      }
+
+      return {
+        safe,
+        warning,
+        error,
+        total,
+        safePct: Math.round((safe / total) * 100),
+        warningPct: Math.round((warning / total) * 100),
+        errorPct: Math.round((error / total) * 100)
+      };
+    }
+
+    function App() {
+      const [tooling, setTooling] = useState("Hybrid / Co-Pilot");
+      const [component, setComponent] = useState("Core Logic");
+      const [granularity, setGranularity] = useState("Function-Level");
+      const [hover, setHover] = useState(null);
+      const [pinned, setPinned] = useState({
+        weight: 25,
+        evidence: evidenceById.E1
+      });
+
+      const config = { tooling, component, granularity };
+
+      const summary = useMemo(
+        () => computeSummary(config),
+        [tooling, component, granularity]
+      );
+
+      /*
+        Hover has priority for immediate feedback.
+        When the mouse leaves the map, the pinned point becomes active again.
+      */
+      const activePoint = hover || pinned || {
+        weight: 25,
+        evidence: evidenceById.E1
+      };
+
+      const activeResult = evaluateCell(activePoint.weight, activePoint.evidence, config);
+      const activeStatus = getStatusMeta(activeResult);
+
+      const activeTopIndex = evidenceLevelsTopToBottom.findIndex(
+        ev => ev.id === activePoint.evidence.id
+      );
+
+      const markerX = xCellCenter(activePoint.weight);
+      const markerY = (activeTopIndex + 0.5) * 20;
+
+      const aiPermitted = isAIPermitted(tooling);
+
+      const isSyntaxAI =
+        component === "Syntax/Boilerplate" && aiPermitted;
+
+      const isArchitectureLine =
+        component === "System Architecture" && granularity === "Line-Level";
+
+      const boundaryMarkers = [
+        {
+          key: "r2",
+          pos: xAfterCell(10),
+          label: "R2 ≤10",
+          top: 8,
+          showLabel: true
+        },
+
+        ...(isSyntaxAI
+          ? [{
+              key: "r3",
+              pos: xAfterCell(20),
+              label: "R3 >20",
+              top: 46,
+              showLabel: true
+            }]
+          : []),
+
+        ...(aiPermitted
+          ? [{
+              key: "r1",
+              pos: xBeforeCell(25),
+              label: "R1 ≥25",
+              top: 84,
+              showLabel: true
+            }]
+          : []),
+
+        {
+          key: "50",
+          pos: xCellCenter(50),
+          label: "50%",
+          showLabel: false
+        },
+
+        {
+          key: "75",
+          pos: xCellCenter(75),
+          label: "75%",
+          showLabel: false
+        }
+      ];
+
+      const scenarios = [
+        {
+          title: "R2 boundary: 10% warning",
+          desc: "10% + E3 is still yellow.",
+          tooling: "Student Only",
+          component: "Documentation",
+          granularity: "Assignment-Level",
+          probe: { weight: 10, evidence: evidenceById.E3 }
+        },
+        {
+          title: "R2 boundary: 11% clear",
+          desc: "11% + E3 becomes green.",
+          tooling: "Student Only",
+          component: "Documentation",
+          granularity: "Assignment-Level",
+          probe: { weight: 11, evidence: evidenceById.E3 }
+        },
+        {
+          title: "R1 boundary: 24% clear",
+          desc: "24% + AI + weak evidence is still green.",
+          tooling: "Hybrid / Co-Pilot",
+          component: "Core Logic",
+          granularity: "Function-Level",
+          probe: { weight: 24, evidence: evidenceById.E1 }
+        },
+        {
+          title: "R1 boundary: 25% error",
+          desc: "25% + AI + weak evidence becomes red.",
+          tooling: "Hybrid / Co-Pilot",
+          component: "Core Logic",
+          granularity: "Function-Level",
+          probe: { weight: 25, evidence: evidenceById.E1 }
+        },
+        {
+          title: "R1 safe alternative",
+          desc: "25% + AI + E2 is green.",
+          tooling: "Hybrid / Co-Pilot",
+          component: "Core Logic",
+          granularity: "Function-Level",
+          probe: { weight: 25, evidence: evidenceById.E2 }
+        },
+        {
+          title: "R3 labor misalignment",
+          desc: "AI-permitted boilerplate above 20%.",
+          tooling: "AI Allowed",
+          component: "Syntax/Boilerplate",
+          granularity: "File-Level",
+          probe: { weight: 21, evidence: evidenceById.E2 }
+        },
+        {
+          title: "R4 granularity mismatch",
+          desc: "Architecture with line-level disclosure.",
+          tooling: "Hybrid / Co-Pilot",
+          component: "System Architecture",
+          granularity: "Line-Level",
+          probe: { weight: 15, evidence: evidenceById.E3 }
+        }
+      ];
+
+      function applyScenario(scenario) {
+        setTooling(scenario.tooling);
+        setComponent(scenario.component);
+        setGranularity(scenario.granularity);
+        setPinned(scenario.probe);
+        setHover(null);
+      }
+
+      const weights = Array.from({ length: 101 }, (_, i) => i);
+
+      const activeCodes =
+        activeResult.issues.length === 0
+          ? "Valid"
+          : activeResult.issues.map(issue => issue.code).join("+");
+
+      return (
+        <div className="app">
+          <section className="hero">
+            <div className="eyebrow">DAP/WAM interactive thesis demo</div>
+            <h1>2D Risk Topography Heatmap</h1>
+            <p className="subtitle">
+              This prototype maps DAP/WAM rule logic into a two-dimensional policy surface.
+              The x-axis is grading weight; the y-axis is evidence strength. The selected point
+              is shown directly on the graphic with a green, amber, or red marker.
+            </p>
+          </section>
+
+          <main className="layout">
+            <aside className="panel sidebar">
+              <h2>Configuration controls</h2>
+
+              <div className="control-group">
+                <label>Tooling / AI-use</label>
+                <select value={tooling} onChange={e => setTooling(e.target.value)}>
+                  {toolingOptions.map(opt => (
+                    <option key={opt}>{opt}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="control-group">
+                <label>Component of work</label>
+                <select value={component} onChange={e => setComponent(e.target.value)}>
+                  {componentOptions.map(opt => (
+                    <option key={opt}>{opt}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="control-group">
+                <label>Granularity</label>
+                <select value={granularity} onChange={e => setGranularity(e.target.value)}>
+                  {granularityOptions.map(opt => (
+                    <option key={opt}>{opt}</option>
+                  ))}
+                </select>
+              </div>
+
+              <h2 style={{ marginTop: "20px" }}>Scenario shortcuts</h2>
+
+              <div className="scenario-grid">
+                {scenarios.map(scenario => (
+                  <button
+                    key={scenario.title}
+                    className="scenario-button"
+                    onClick={() => applyScenario(scenario)}
+                  >
+                    <div className="scenario-title">{scenario.title}</div>
+                    <div className="scenario-desc">{scenario.desc}</div>
+                  </button>
+                ))}
+              </div>
+
+              <button className="clear-pin" onClick={() => setPinned(null)}>
+                Clear pinned point / use hover
+              </button>
+
+              <div className="rule-key">
+                <h3>Rule key</h3>
+
+                <div className="rule-row">
+                  <span className="rule-code r-red">R1</span>
+                  <span>Weight ≥25%, AI permitted, weak evidence.</span>
+                </div>
+
+                <div className="rule-row">
+                  <span className="rule-code r-amber">R2</span>
+                  <span>Weight ≤10%, but evidence is E3 or E4.</span>
+                </div>
+
+                <div className="rule-row">
+                  <span className="rule-code r-amber">R3</span>
+                  <span>Syntax/boilerplate weight &gt;20% while AI is permitted.</span>
+                </div>
+
+                <div className="rule-row">
+                  <span className="rule-code r-amber">R4</span>
+                  <span>System architecture with line-level disclosure.</span>
+                </div>
+              </div>
+
+              <p className="small-note">
+                Tip: hover for instant feedback. Click to pin a point.
+              </p>
+            </aside>
+
+            <section className="panel map-panel">
+              <div className="map-header">
+                <h2>Policy surface: weight × evidence</h2>
+                <p>
+                  Green cells indicate aligned configurations. Orange cells indicate warnings.
+                  Red cells indicate the Free-Rider / Integrity risk.
+                </p>
+              </div>
+
+              <div className="heatmap-shell">
+                <div className="y-axis" aria-label="Evidence strength axis">
+                  {evidenceLevelsTopToBottom.map(ev => (
+                    <div className="y-label" key={ev.id}>
+                      <div className="y-short">{ev.short}</div>
+                      <div className="y-full">{ev.label}</div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="map-column">
+                  <div
+                    className="map-wrap"
+                    onMouseLeave={() => setHover(null)}
+                    aria-label="Risk topography heatmap"
+                  >
+                    <div className="map-grid">
+                      {evidenceLevelsTopToBottom.map(ev =>
+                        weights.map(w => {
+                          const result = evaluateCell(w, ev, config);
+                          const background = colorForCell(w, ev, result);
+
+                          const cellClass =
+                            result.severity === activeResult.severity
+                              ? "cell focused"
+                              : "cell faded";
+
+                          return (
+                            <div
+                              key={`${ev.id}-${w}`}
+                              className={cellClass}
+                              style={{ background }}
+                              onMouseEnter={() => setHover({ weight: w, evidence: ev })}
+                              onClick={() => setPinned({ weight: w, evidence: ev })}
+                            />
+                          );
+                        })
+                      )}
+                    </div>
+
+                    {boundaryMarkers.map(marker => (
+                      <React.Fragment key={marker.key}>
+                        <div
+                          className="boundary-line"
+                          style={{ left: `${marker.pos}%` }}
+                        />
+
+                        {marker.showLabel && (
+                          <div
+                            className="boundary-label"
+                            style={{
+                              left: `${marker.pos}%`,
+                              top: `${marker.top}px`
+                            }}
+                          >
+                            {marker.label}
+                          </div>
+                        )}
+                      </React.Fragment>
+                    ))}
+
+                    <div
+                      className="zone-tag zone-amber"
+                      style={{ top: "4%", left: "2%" }}
+                    >
+                      Rule 2: low weight + heavy evidence
+                    </div>
+
+                    <div
+                      className="zone-tag zone-green"
+                      style={{ top: "38%", left: "36%" }}
+                    >
+                      Green corridor
+                    </div>
+
+                    {aiPermitted && (
+                      <div
+                        className="zone-tag zone-red"
+                        style={{ bottom: "7%", right: "4%" }}
+                      >
+                        Rule 1: high weight + weak evidence
+                      </div>
+                    )}
+
+                    {isSyntaxAI && (
+                      <div
+                        className="zone-tag zone-amber"
+                        style={{ top: "54%", right: "4%" }}
+                      >
+                        Rule 3: boilerplate carries too much weight
+                      </div>
+                    )}
+
+                    {isArchitectureLine && (
+                      <>
+                        <div className="hatch-overlay" />
+                        <div
+                          className="zone-tag zone-amber"
+                          style={{ top: "43%", left: "9%" }}
+                        >
+                          Rule 4: granularity mismatch
+                        </div>
+                      </>
+                    )}
+
+                    {activePoint && (
+                      <>
+                        <div
+                          className="crosshair-v"
+                          style={{ left: `${markerX}%` }}
+                        />
+                        <div
+                          className="crosshair-h"
+                          style={{ top: `${markerY}%` }}
+                        />
+                        <div
+                          className={activeStatus.markerClass}
+                          style={{
+                            left: `${markerX}%`,
+                            top: `${markerY}%`
+                          }}
+                        >
+                          {activeStatus.icon}
+                        </div>
+                        <div
+                          className={activeStatus.labelClass}
+                          style={{
+                            left: `${markerX}%`,
+                            top: `${markerY}%`
+                          }}
+                        >
+                          {hover ? "Hover" : pinned ? "Pinned" : "Point"}:
+                          {" "}{activeStatus.shortLabel}
+                          {" · "}{activePoint.weight}%
+                          {" · "}{activePoint.evidence.short}
+                          {" · "}{activeCodes}
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  <div className="x-axis">
+                    {[0, 10, 25, 50, 75, 100].map(tick => (
+                      <div
+                        key={tick}
+                        className="x-tick"
+                        style={{ left: `${xCellCenter(tick)}%` }}
+                      >
+                        {tick}%
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="x-title">Grading weight →</div>
+
+                  <div className="legend">
+                    <div className="legend-item">
+                      <span className="swatch" style={{ background: "#16a34a" }} />
+                      Green: aligned
+                    </div>
+
+                    <div className="legend-item">
+                      <span className="swatch" style={{ background: "#f59e0b" }} />
+                      Orange: warning
+                    </div>
+
+                    <div className="legend-item">
+                      <span className="swatch" style={{ background: "#dc2626" }} />
+                      Red: integrity error
+                    </div>
+
+                    <div className="legend-item">
+                      <span
+                        className="swatch"
+                        style={{
+                          backgroundImage: "repeating-linear-gradient(135deg, rgba(15,23,42,0.45) 0, rgba(15,23,42,0.45) 1px, transparent 1px, transparent 6px)",
+                          backgroundColor: "#fb923c"
+                        }}
+                      />
+                      Hatch: granularity overlay
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="detail-panel">
+                <div className="probe-card">
+                  <h3>Current point inspection</h3>
+
+                  <div className="probe-grid">
+                    <div className="kv">
+                      <div className="kv-label">Weight</div>
+                      <div className="kv-value">{activePoint.weight}%</div>
+                    </div>
+
+                    <div className="kv">
+                      <div className="kv-label">Evidence</div>
+                      <div className="kv-value">{activePoint.evidence.label}</div>
+                    </div>
+
+                    <div className="kv">
+                      <div className="kv-label">Tooling</div>
+                      <div className="kv-value">{tooling}</div>
+                    </div>
+
+                    <div className="kv">
+                      <div className="kv-label">Component</div>
+                      <div className="kv-value">{component}</div>
+                    </div>
+
+                    <div className="kv kv-wide">
+                      <div className="kv-label">Granularity</div>
+                      <div className="kv-value">{granularity}</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="probe-card">
+                  <h3>Triggered rule logic</h3>
+
+                  <div className={activeStatus.className}>
+                    <div className="status-title">{activeStatus.title}</div>
+                    <div className="status-text">{activeStatus.text}</div>
+                  </div>
+
+                  {activeResult.issues.length === 0 ? (
+                    <div className="issue">
+                      <div className="issue-title">No rule triggered</div>
+                      <div className="issue-message">
+                        R1, R2, R3, and R4 are inactive for this point.
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="issue-list">
+                      {activeResult.issues.map(issue => (
+                        <div className="issue" key={issue.code}>
+                          <div className="issue-head">
+                            <div className="issue-title">{issue.title}</div>
+                            <span
+                              className={
+                                issue.severity === "error"
+                                  ? "issue-code code-error"
+                                  : "issue-code code-warning"
+                              }
+                            >
+                              {issue.code}
+                            </span>
+                          </div>
+
+                          <div className="issue-message">{issue.message}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="summary-grid">
+                    <div className="summary-box summary-safe">
+                      <div className="summary-number">{summary.safePct}%</div>
+                      <div className="summary-label">Green cells</div>
+                    </div>
+
+                    <div className="summary-box summary-warning">
+                      <div className="summary-number">{summary.warningPct}%</div>
+                      <div className="summary-label">Warning cells</div>
+                    </div>
+
+                    <div className="summary-box summary-error">
+                      <div className="summary-number">{summary.errorPct}%</div>
+                      <div className="summary-label">Error cells</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </main>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById("root"));
+    root.render(<App />);
+  </script>
+</body>
+</html>
